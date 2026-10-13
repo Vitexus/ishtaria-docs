@@ -28,7 +28,7 @@ html_theme_options = {
     "collapse_navigation": False,
 }
 html_context = {
-    "display_github": True,
+    "display_github": False,
     "github_user": "VitexSoftware",
     "github_repo": "ishtaria-docs",
     "github_version": "main",

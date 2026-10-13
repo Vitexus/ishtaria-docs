@@ -7,7 +7,7 @@ from A.
 
 The normative schema is
 ``schemas/federation-agreement.schema.json`` in the
-`ishtaria-protocol <https://github.com/VitexSoftware/ishtaria-protocol>`_
+`ishtaria-protocol <https://git.vitexsoftware.com/Ishtaria/ishtaria-protocol>`_
 repository (installed by the ``ishtaria-protocol`` package to
 ``/usr/share/ishtaria/protocol/``).
 
