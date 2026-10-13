@@ -25,6 +25,14 @@ Decision
   look. It needs ``player_character``, which stays the look stored in the profile and the fallback while
   the model loads. The server ships and announces it with the other media of the disk
   (``player_model`` in ``datadisks``).
+* ``player_body`` (``height_m`` 0.5 to 8 m, ``toughness`` 1 to 20, needs ``player_character``) says how tall the
+  character stands and how much more than a man it endures: clients draw it that tall (the people of the
+  creator are 1.8 m) and follow it from higher up and further away, and the server hurts it less when it falls.
+  A fall hurts by its landing speed (nothing up to 8 m/s, everything at 21 m/s for a man); for a body ``size``
+  times a man's the speeds that count grow with the square root of the size (the drop is compared with the
+  body), and the damage is divided by ``toughness``. This applies only to players who have that character, so
+  men keep their fragility. An NPC of a disk may carry ``size`` (0.5 to 4) to stand that many times taller
+  than its model as authored: gods towering over men.
 * The client reads the announcement before the player form is shown: the choice of pack and look is hidden,
   the preview shows the given character, and neither a saved nor the default look can replace it. The player
   still chooses a nickname, password and language.
