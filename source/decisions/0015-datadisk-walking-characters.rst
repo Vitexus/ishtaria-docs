@@ -33,9 +33,29 @@ Decision
 Consequences
 ------------
 
-* Walkers keep to land and to the ground of the world (heights are those of the terrain, patches included) but do
-  not avoid obstacles: a route may lead through a wall or a fence. Disks keep patrols to open ground and
-  wanderers' radii to what is free around their place.
+* Walkers keep to land and to the ground of the world (heights are those of the terrain, patches included) and
+  **do not walk through obstacles** (2026-10-13): a walk whose straight line would meet a wall of a datadisk's
+  building (its collision mesh), a fence, a tree or a rock (steps up to 0.7 m are climbed) is not made. A wanderer
+  then goes to its home first and from there to the next spot, a spot it cannot reach in a straight line from home is
+  not chosen, and a patrol whose leg is blocked goes by its place. A disk keeps patrols to open ground and a
+  wanderer's radius to what is free around its place all the same: the route is a straight line, not a path-finder.
 * The compass markers of a quest point at the place of the character, not at where it walks.
 * A character of a datadisk is a character, not a creature: it has no combat. Hostile creatures of a datadisk are
   a separate decision.
+
+Addendum: a character that is talked to stands still (2026-10-13)
+-----------------------------------------------------------------
+
+* While a player talks to a walking character it stands still, turned to the player, and afterwards goes on to where it
+  was going. The walk of a character depends only on the time, so the conversation stops the *character's own clock*
+  (migration ``0040_npc_pauses.sql``): the table keeps, per character, how long it has stood in earlier conversations
+  (``shift_ms``) and the current stop (``pause_from_ms`` to ``pause_to_ms``). The time of the walk is ``now`` less the
+  time stood, so it is continuous: the character resumes exactly where it stood and nothing jumps.
+* ``POST /story/dialogue/start`` and every answer open or renew the stop (five minutes ahead, so that a client that is
+  gone does not stop the character for good); leaving the conversation (``DELETE /story/dialogue``) or reaching its
+  end closes it at once. Routes in ``GET /world/objects`` are given in real time (shifted by what the character has
+  stood) and, while it stands, are two waypoints at its position.
+* The client keeps the character in conversation where it is and turns it to the player (a character that only stood
+  turns back afterwards), and after the conversation asks for the routes again, so the next route goes on from where it
+  stood. If the answer does not come within four seconds it goes on by the route it has.
+

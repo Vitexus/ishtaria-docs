@@ -60,3 +60,15 @@ Consequences
 * Elevation data derived from Copernicus DEM and OpenStreetMap must be attributed in the disk's
   ``attribution`` (Copernicus DEM licensed under the ESA terms, OSM under ODbL), like any other
   third-party content.
+
+Addendum: cleared ground (2026-10-13)
+-------------------------------------
+
+A city built by a datadisk (streets, houses, squares, fields: Uruk) stands in a world whose own grid of wild
+trees, rocks, flowers and animals knows nothing of it, so a tree grew in the middle of a street. A patch may
+therefore carry ``clear``: a greyscale ``.png`` below ``media/terrain/`` of **any size** (8 or 16 bit, at most four
+million pixels) over the whole rectangle of the patch, nearest pixel, in which every pixel above zero is built or
+tilled ground. The server places no natural object (scenery or animal of the world's grid) there. Only placement
+changes: walking, heights and water are as before, a character may still plant a crop or place a fence, and the
+patch's own scenery presets are not affected. The file is shipped with the disk like the other terrain files
+(it is part of the hash) but is not announced to clients, which only ever see the objects the server sends.
