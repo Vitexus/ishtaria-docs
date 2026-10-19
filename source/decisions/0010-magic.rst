@@ -65,3 +65,19 @@ Consequences
 * The client shows mana in the HUD, lists known spells in the inventory window with their
   costs, and casts the first nine with the number keys; the visual effect is only a short
   light flying to the target. Effects, sounds and icons are cosmetic and not authoritative.
+
+Change (2026-10): day and night
+-------------------------------
+
+By the project owner's request two more effect kinds joined the fixed set (migration
+``0041_day_night_scrolls.sql``): ``day`` (Scroll of Day, spell "Daybreak") and ``night``
+(Scroll of Night, spell "Nightfall"). Casting one jumps the world's **shared solar clock**
+to the caster's next dawn or dusk — the first crossing of the astronomical horizon in the
+asked direction at the caster's position on the planet, found by a coarse scan and
+bisection. The shift is a per-world offset (``worlds.solar_offset_seconds``, bounded to one
+day) that ``GET /world`` adds to the real clock on top of the operator's
+``--solar-offset-seconds``; each cast replaces it, so the offset never grows. This is the
+first spell that changes the world rather than the caster: everyone online is told through
+a ``solar`` event (their clients ask for ``/world`` again) and the cast answer carries the
+new ``solar`` document for the caster. No player is targeted, nothing revives the dead,
+and the sky itself stays astronomical: only the world's offset from the real clock moves.
