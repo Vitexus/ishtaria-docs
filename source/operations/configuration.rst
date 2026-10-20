@@ -10,12 +10,17 @@ Configuration
    # Rules shared with federated worlds (must match peers' major version).
    ruleset = "core-rules@1.0"
    listen = "0.0.0.0:7400"
+   # public_url = "https://world.example.org"   # HTTPS name in front of a reverse proxy
 
 .. warning::
 
    ``server_name`` is permanent. Player ids (``@user:server``) and item ids
    (``server/uuid``) embed it, so changing it later breaks identities and
    federation. Choose a domain you will keep.
+
+For a public world, terminate TLS on a reverse proxy (HAProxy, nginx or Caddy) and set
+``public_url`` to that HTTPS address. See :doc:`hardening` for HAProxy and nginx examples,
+``trust_proxy``, and why the client rejects plain HTTP to a remote host.
 
 Limits, logs and metrics
 ------------------------
@@ -40,7 +45,9 @@ small public world, and the guard is a plain middleware without further dependen
   (a school, a family, a mobile network) share it: raise ``requests_per_second`` and ``burst`` for such a
   world. A walking client sends about ten requests per second.
 * ``trust_proxy = true`` takes the address from the **last** entry of ``X-Forwarded-For``, the one your own
-  proxy added. Never set it on a server that clients reach directly, or anybody can pretend to be anybody.
+  proxy added (HAProxy ``option forwardfor``, nginx ``proxy_set_header X-Forwarded-For``). Never set it on
+  a server that clients reach directly, or anybody can pretend to be anybody. The key belongs under
+  ``[limits]`` only; a top-level ``trust_proxy`` is ignored.
 * A refused request gets ``429`` with ``Retry-After``. Every request has a 30 s time limit (``504``).
 * ``/metrics`` answers loopback only (and not at all behind ``trust_proxy``), or a request with
   ``Authorization: Bearer <metrics_token>``. See :doc:`monitoring`.

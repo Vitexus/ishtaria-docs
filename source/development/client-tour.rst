@@ -54,11 +54,15 @@ Files
    * - ``portal_panel.gd``, ``escape_menu.gd``, ``control_settings.gd``
      - portals, the menu, key and sound settings
 
-Keys that are reserved
-----------------------
+Keys and Settings
+-----------------
 
-``character_controls.RESERVED_KEYS`` lists keys the player cannot rebind for walking. When you
-add a key to ``main.gd:_input``, add it there too.
+Every gameplay key belongs in ``character_controls.ACTIONS`` (with a default and a Settings
+label) and is handled through ``matches_action`` / ``spell_slot`` from ``main.gd``. Settings
+lists them all and lets the player rebind them; that window is the in-game key reference.
+``RESERVED_KEYS`` holds only Escape (menu / cancel capture). When you add a new action,
+extend ``ACTIONS`` / ``DEFAULT_KEYS`` / ``LABELS``, wire it in ``main.gd``, and add the label
+to ``locales/client.csv``.
 
 Tests
 -----

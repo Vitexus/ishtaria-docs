@@ -112,8 +112,8 @@ Add a window or a key to the client
    ``scripts/trade_panel.gd``.
 #. Create both in ``scripts/main.gd``, connect signals, start them where the others are started
    and stop them when the profile becomes empty (leaving a server).
-#. Keys: handle in ``_input``, add the key to ``RESERVED_KEYS``, and include the panel in
-   ``_game_ui_open``.
+#. Keys: add an entry to ``character_controls.ACTIONS`` (default + Settings label), handle it
+   via ``matches_action`` in ``_input``, and include the panel in ``_game_ui_open``.
 #. A ``tests/<name>.gd`` script and a ``make test-<name>`` target; text keys in ``client.csv``.
 #. Look at the result with your own eyes.
 
