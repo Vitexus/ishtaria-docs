@@ -110,6 +110,20 @@ the Animated Animal Pack and chickens, pigs and sheep of the Quaternius farm ani
 (CC0). Their identifiers (``<seed>:farm:<number>:<place>``) are a separate namespace, so
 existing scenery does not change.
 
+**Flocks and shepherds.** On top of that, every settlement has a flock of sheep and goats (5, 8
+or 12 animals, three in ten of them goats; the goat is the Hyper3D Early Dynastic model) and,
+where there is land to walk on, a shepherd. The flock lives in a cycle of about twelve minutes
+that depends only on the settlement and the time (``src/herd.rs``): it rests in the fold
+beside the settlement, is driven 140 metres out to a pasture at walking pace, grazes there and
+is driven home. The flock animals carry the numbers after the village's own animals in the
+same ``<seed>:farm:<number>:<place>`` namespace and keep their own spot about the centre of the
+herd, milling slowly; the shepherd is a generated character (``shepherds:shepherd_NN``,
+movement kind ``herd``, not available to datadisks) who walks a few seconds behind the centre.
+The flocks of a world are out at different times. A conversation stops the shepherd like any
+walking character (migration 0040), so after talking he falls behind the flock by that long.
+Without land all the way to the pasture the flock keeps to its fold and there is no shepherd.
+Sheep and goats can be butchered like other animals.
+
 **Meat and milk.** ``POST /players/me/butcher`` swings the weapon in hand (sword, cleaver,
 knife, dagger or axe, ``etc/creatures.json``) at an animal within reach; several swings
 butcher it for raw meat (and bones), like felling a tree: the animal is stored as a change of
