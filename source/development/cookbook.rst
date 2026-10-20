@@ -123,3 +123,7 @@ Add an NPC or a quest
 Story content belongs in a datadisk (see ``ishtaria-protocol/DATADISK-SPEC.md``): places, NPCs,
 dialogue trees, quests and strings in English and Czech. Datadisks are pinned by hash and carry no
 code. Generated towns and their traders are in ``src/story/settlements.rs``.
+
+A character can tell what it knows: add a card to ``knowledge.yaml`` (text keys in every language, a picture below
+``media/knowledge/`` with its credit, the Wikipedia titles) and name it with ``about`` on the NPC; the generated
+characters use ``etc/knowledge.yaml`` and ``assets/knowledge/`` of the server (decision 0019).
