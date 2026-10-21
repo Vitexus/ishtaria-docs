@@ -16,8 +16,9 @@ Decision
 
 * A place may carry a ``structure`` instead of ``scenery``: a self-contained glTF binary below ``media/models/``
   (at most 4 MiB, in metres, +Y up), with optional ``collision`` (a simpler model), ``scale_m``, ``yaw_deg``,
-  ``offset_m``, ``ground_m`` (the point of the model that stands on the terrain, such as the foot of its stairs)
-  and ``visible_m`` (how far away the server announces it). See ``datadisk.schema.json``.
+  ``offset_m``, ``ground_m`` (the point of the model that stands on the terrain, such as the foot of its stairs),
+  ``visible_m`` (how far away the server announces it) and ``at_sea`` (stand at mean sea level for ships and
+  floating docks, with no mesh collider). See ``datadisk.schema.json``.
 * The server announces the building as a prop whose model is ``disk:<disk>:<media path>``; the client fetches the file
   from ``/story/media`` (as for character models), draws it when it arrives and caches it.
 * Characters walk **by the mesh** of the building: the server reads the triangles of the glTF
@@ -33,7 +34,8 @@ Consequences
 * No database migration: props derive from the disk and the persisted place anchors. A changed disk needs the usual
   re-pinning.
 * The model stands at the terrain height at its ``ground_m`` point; on uneven ground the rest of the building may
-  float a little or sink. Models should carry a foundation below their ground plane.
+  float a little or sink. Models should carry a foundation below their ground plane. With ``at_sea: true`` the
+  radial height is mean sea level (0 m), matching generated harbour props.
 * Only characters are walked by the mesh, not animals; there are no doors, interiors or destruction.
 * Walking by the mesh happens only within reach of a building (its bounding radius and 4 m); elsewhere movement is
   unchanged. A building of a datadisk is a large mesh and is a cost for every client in range, hence the size limit.

@@ -18,7 +18,8 @@ Decision
 * A place may declare ``wildlife`` with weighted ``flora`` / ``fauna`` catalog ids,
   optional ``radius_m`` and ``density``. Inside that radius the server picks scenery and
   land animals from those weights instead of the global biome table; ``clear`` and water
-  rules are unchanged.
+  rules are unchanged. An entry may set ``waterside: true`` so it only spawns within about
+  60 m of patch water, a river or the sea (crocodiles, waterfowl, gulls).
 * The manifest may name ``cover_music`` (logo jingle while the cover shows) and
   ``ambient_music`` (default background outside place music). Both are track ids from
   ``music/*.yaml``. The world announcement includes their media URLs when set.

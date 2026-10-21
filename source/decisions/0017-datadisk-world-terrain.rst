@@ -30,7 +30,7 @@ Decision
 * Only one selected disk may define the world; the server refuses a combination of two.
 * ``ishtaria-worldgen --earth HEIGHT --water MASK [face_size]`` renders the six-face strip
   from the rasters instead of the noise, with the sphere mapped to the planet's real
-  geography as latitude = asin(y) and longitude = atan2(z, x) (the +Y face is the north
+  geography as latitude = asin(y) and longitude = atan2(-z, x) (the +Y face is the north
   pole), so the server's compass bearings and historical distances are the real ones. The
   strip keeps the standard 8-bit encoding; the water mask clamps every water pixel at or
   below sea level and every land pixel above it, so shallow seas and dry depressions survive
