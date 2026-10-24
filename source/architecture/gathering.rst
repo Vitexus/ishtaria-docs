@@ -15,8 +15,20 @@ migration ``0016_gathering.sql``. Only the tool **in hand** works: the inventory
 pickaxe mines stone and also fells trees, but needs **twice as many swings**; the
 axe does not work on stone, a sword in hand works on nothing. A swing is worth work
 points (axe on a tree two, pickaxe one), so swings with different tools add up. The
-equipment is cleared at death. The
-sword is for defence once combat exists.
+equipment is cleared at death. The sword is used in hunting (see combat below and
+:doc:`trading` for shops that sell better tiers).
+
+Durability
+~~~~~~~~~~
+
+Tools, weapons, armour and shields wear with use (migration ``0025_durability.sql``,
+``src/durability.rs``). Each item kind has its own ``max_durability`` on
+``item_types`` (migration ``0050_item_quality.sql``): a better sword or shield
+outlasts a common one and merchants charge more for it. Remaining durability is
+stored per stack; when it reaches zero the piece is **destroyed** (removed from
+the inventory) and the client plays a break sound. Worn pieces show their
+remaining points in the inventory; they cannot be dropped while equipped and
+cannot be put on a player-to-player trade table.
 
 Resources
 ---------
@@ -104,6 +116,13 @@ walks the animal along it (the walking clip while it moves, the idle clip while 
 and asks for the routes again every 30 seconds. The server computes the same route when it
 checks reach, with a few metres of tolerance.
 
+**Water-holes.** Land animals of a datadisk wildlife overlay that stand within about 130 m of
+patch water (the hunter's pond, a painted lake) follow a longer drink/graze cycle instead of
+the short wander: they graze among the grass away from the bank, walk to the water, drink for
+a short while and return. Phases are staggered per animal so the herd does not drink all at
+once. Near the water the overlay also places more animals (up to five times the base density
+on the bank).
+
 **Farm animals.** Beside every generated settlement a pasture holds a herd (3, 6 or 10
 animals for a hamlet, village or town): cows, bulls, horses, donkeys, an alpaca or a dog from
 the Animated Animal Pack and chickens, pigs and sheep of the Quaternius farm animals
@@ -137,9 +156,15 @@ fills as many inventory slots as its size suggests: a fox four, a wolf eight, a
 horse twenty, a bull twenty-five; a fish one to eight. There is no hunting or
 fishing yet, so the items cannot be obtained.
 
+Dropping items
+--------------
+
+Unequipped inventory can be thrown on the ground and picked up again, or scooped
+by NPCs and wayfarers who then sell finds to merchants. See :doc:`trading`.
+
 Planned
 -------
 
-Survival Kit items (logs, stumps, tools, campfire, bed, anvil and others) can be
-carried and **placed in the world** for later use; a closed portal can be mined
-for its materials with a pickaxe. Neither is implemented yet.
+A closed portal can be mined for its materials with a pickaxe. That is not
+implemented yet. Campfires, benches, anvils and other placeables are already
+shipped (migration ``0038_building_farming_fishing.sql``).

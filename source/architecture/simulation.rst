@@ -46,7 +46,7 @@ Time runs while players are away.
 .. todo:: Decide penalties and protections for avatars sleeping outdoors.
 
 Inventory, survival and permanent memorials
-------------------------------------------
+-------------------------------------------
 
 The server persists a permanent UUID for each character. A new character starts
 with 100 gold coins, four food stacks and 100 inventory slots, granted once on

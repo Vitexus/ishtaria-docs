@@ -40,7 +40,7 @@ Files
    * - ``social.gd``, ``chat_feed.gd``, ``friends_panel.gd``
      - friends, the ``/events`` poll, chat lines and the chat input
    * - ``trading.gd``, ``trade_panel.gd``
-     - merchants and exchanges
+     - merchants, finds bought from NPCs, and exchanges between players
    * - ``placed_client.gd``
      - placing, planting, picking up, harvesting, fishing
    * - ``magic_client.gd``
@@ -52,7 +52,24 @@ Files
    * - ``story_client.gd``, ``dialogue_panel.gd``, ``quest_panel.gd``
      - datadisk stories, conversations, quests
    * - ``portal_panel.gd``, ``escape_menu.gd``, ``control_settings.gd``
-     - portals, the menu, key and sound settings
+     - portals, the menu, display, sound and key settings
+   * - ``achievements_client.gd``, ``achievements_panel.gd``, ``achievement_toast.gd``
+     - achievements: the list from the server, the window of the ESC menu, the banner of a new one
+   * - ``ui/ui_theme.gd``, ``ui/ui_kit.gd``, ``ui/framed_style_box.gd``
+     - the interface theme (palette, fonts, Godot ``Theme`` merged into the default one in ``main.gd``)
+       and the shared pieces: framed panel, divider, backdrop, open animation, button sounds
+
+Look of a new window
+--------------------
+
+Do not build style boxes or pick colours in a panel. Give its ``PanelContainer``
+``theme_type_variation = &"FramePanel"`` (or build it with ``UiKit.framed_panel``), its title
+``&"HeaderLabel"``, its main command ``&"PrimaryButton"`` and a quiet one ``&"GhostButton"``, and
+open it with ``UiKit.open_animated``. A list row goes on a card (``UiKit.card``, buttons centred with
+``UiKit.center_buttons``); an answer in a conversation is a ``&"ChoiceButton"``. Add the window to
+``tests/panels_look.gd`` and look at its screenshots from a native run. Colours, when a label really needs one, come from the
+constants of ``ui_theme.gd``. Long text keeps the default font; the Kenney display font is
+for titles, buttons and headers only.
 
 Keys and Settings
 -----------------

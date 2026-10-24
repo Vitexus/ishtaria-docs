@@ -90,7 +90,9 @@ outside every settlement** (Graveyard Kit). One in four is founded by the sea; a
 that ends up near the sea gets a **harbour** (Pirate Kit: hut, pier, boats and ships) and a
 shipwright who sells rowing boats and ships for gold. The shop is ordinary dialogue data
 (``etc/shipwright.yaml``); the vessels are inventory items (migration ``0029_ships.sql``), sailing
-does not exist yet. Datadisk places can ask for the same buildings with
+does not exist yet. Footpaths between towns carry **wayfarers** (``MovementKind::Travel``,
+``etc/traveler.yaml``) who pocket dropped goods and sell them to the nearest trader at a
+markup; see :doc:`trading`. Datadisk places can ask for the same buildings with
 ``scenery: {preset: town, size: village}``, ``{preset: graveyard}`` or ``{preset: fortress}``.
 Among the modular houses every settlement gets ready-made Quaternius buildings (a temple in
 villages and towns, a bell tower and barracks in towns, fantasy houses, houses and towers), placed
@@ -120,6 +122,8 @@ so a new character wakes up as in the story's opening. Without such a place the 
 Not yet
 -------
 
-Character schedules and movement, quest triggers other than dialogue effects (arriving
-somewhere, owning an item at a given time), collisions with characters, story state
-travelling through portals, and a quest log screen in the client.
+Character schedules (hours of the day), quest triggers other than dialogue effects
+(arriving somewhere, owning an item at a given time), collisions with characters,
+story state travelling through portals, and carrying a finder's errand through a
+portal. Walking characters (wander, patrol, herd, travel) and a quest log screen
+are implemented; see :doc:`../decisions/0015-datadisk-walking-characters`.

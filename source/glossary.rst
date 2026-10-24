@@ -40,3 +40,13 @@ Glossary
    Catch-up
       Materialising concrete entities from aggregate state when a region
       becomes observed again.
+
+   Wayfarer
+      A generated character that walks the footpath between two towns
+      (``MovementKind::Travel``). It pockets dropped items and sells them
+      to the nearest merchant at a markup. See :doc:`architecture/trading`.
+
+   Ground pile
+      An unequipped inventory stack thrown at a character's feet
+      (``ground_items``). It stays until a player picks it up or an NPC
+      scoops it.

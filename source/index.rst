@@ -17,6 +17,9 @@ worlds are linked through **portals** that players build in-game.
    :caption: Overview
 
    vision
+   world-overview
+   gameplay
+   quests-and-npcs
    roadmap
    glossary
 
@@ -29,6 +32,7 @@ worlds are linked through **portals** that players build in-game.
    architecture/client
    architecture/simulation
    architecture/gathering
+   architecture/trading
    architecture/story
    architecture/persistence
 

@@ -53,14 +53,16 @@ Modules
      - things put into the world, crops, stations, fishing (``etc/placeables.json``)
    * - ``shops.rs``, ``trade.rs``
      - merchants (``etc/shops.json``) and exchanges between players
+   * - ``loot.rs``
+     - drop and pick up ground piles, NPC scooping, wayfarer errands and merchant stock
    * - ``chat.rs``, ``social.rs``
      - nearby players, say and whisper, friends, the ``/events`` poll
    * - ``portals.rs``, ``federation.rs``, ``land.rs``
      - portals and links, signing and peers, real-money land leases
-   * - ``hall.rs``
-     - hall of fame
+   * - ``hall.rs``, ``achievements.rs``
+     - hall of fame; achievements (``etc/achievements.json``), granted inside the earning action
    * - ``scenery.rs``, ``story/``
-     - generated towns and props; datadisks, dialogue, quests, NPCs, settlements
+     - generated towns and props; datadisks, dialogue, quests, NPCs, settlements, wayfarers
 
 Data files (``etc/``)
 ---------------------
@@ -86,8 +88,8 @@ catalogue. To add one, see :doc:`cookbook`.
      - armour defence and slots, dangerous animals
    * - ``placeables.json``
      - things to place, crops, fishing
-   * - ``shops.json``, ``trader.yaml``, ``shipwright.yaml``
-     - merchants and their goods; dialogues of generated NPCs
+   * - ``shops.json``, ``trader.yaml``, ``shipwright.yaml``, ``traveler.yaml``
+     - merchants and their goods; dialogues of generated traders, shipwrights and wayfarers
    * - ``spells.json``
      - mana and spells
    * - ``portal.json``

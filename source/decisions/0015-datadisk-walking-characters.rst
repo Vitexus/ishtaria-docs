@@ -59,3 +59,17 @@ Addendum: a character that is talked to stands still (2026-10-13)
   turns back afterwards), and after the conversation asks for the routes again, so the next route goes on from where it
   stood. If the answer does not come within four seconds it goes on by the route it has.
 
+Addendum: wayfarers on the roads (2026-10-22)
+---------------------------------------------
+
+* The settlement generator places **wayfarers** on inter-town footpaths
+  (``MovementKind::Travel``, ``etc/traveler.yaml``). Travel is a long patrol along
+  trail waypoints (up to 24 stops, within the trail length limit). It is
+  **generated only**; datadisks keep ``wander`` and ``patrol``. A shopkeeper still
+  cannot walk.
+* When a wayfarer scoops a dropped pile (migration ``0051_ground_loot.sql``) it
+  records an errand toward the nearest general merchant (migration
+  ``0052_travelers.sql``) and its ``wander`` route is diverted along those road
+  waypoints. On arrival the finds move into ``merchant_stock`` at twice the
+  finder's asking price. Full rules: :doc:`../architecture/trading`.
+

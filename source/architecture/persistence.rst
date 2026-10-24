@@ -19,7 +19,7 @@ Stores
    * - Accounts, inventories, trades, currency ledger
      - PostgreSQL (with PostGIS for spatial queries)
    * - Cell deltas, placed objects, aggregate cell state
-    - PostgreSQL, indexed by H3 cell id (planned)
+     - PostgreSQL, indexed by H3 cell id (planned)
    * - Avatars, content packs, large blobs
      - S3-compatible object storage, content-addressed
 

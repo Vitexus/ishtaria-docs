@@ -9,12 +9,13 @@ Where we are (October 2026)
 
 The base game exists and is tested: walking on a generated planet, survival, gathering, crafting at
 stations, hunting with armour and creatures that bite back, merchants and exchanges between players,
-building, farming, fishing, nearby players with text chat, magic, graves and permanent death, story
-datadisks, portals and share links between worlds. A public server can be limited, observed and backed
-up, and a contributor can extend the game with the :doc:`developer guide <development/contributing>`.
-M1 is done. Parts of M2 (day and night, animals) and M3 (inventories, merchants, exchanges between
-players) exist, but the seasons, the cell-level ecosystem, player-made currencies and the double-entry
-ledger are still open, as are M4 to M7 in their full scope. The newest open work is listed in M7a to M9.
+dropping items that NPCs and wayfarers scoop and resell, building, farming, fishing, nearby players
+with text chat, magic, graves and permanent death, story datadisks, portals and share links between
+worlds. A public server can be limited, observed and backed up, and a contributor can extend the game
+with the :doc:`developer guide <development/contributing>`. M1 is done. Parts of M2 (day and night,
+animals) and M3 (inventories, merchants, exchanges between players) exist, but the seasons, the
+cell-level ecosystem, player-made currencies and the double-entry ledger are still open, as are M4
+to M7 in their full scope. The newest open work is listed in M7a to M9.
 
 Milestones
 ----------
