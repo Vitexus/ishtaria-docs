@@ -30,7 +30,7 @@ and is fine as a check every few seconds.
 Example backend (TLS certificates and the ``frontend`` that selects by ``Host`` are outside this
 snippet; Spoje.NET operators keep the live list in the ``haproxy-ansible-role`` inventory):
 
-.. code-block:: haproxy
+.. code-block:: text
 
    backend world_example_org
        mode http
