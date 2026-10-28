@@ -198,6 +198,30 @@ no purchase window, but the server does expose it. For a Steam release there are
 Whichever you choose, read the Steam Distribution Agreement before the first payment of any kind. The
 rule that money buys space and appearance and never power (:doc:`invariants`) holds in every case.
 
+Achievements
+------------
+
+Ishtaria's achievements are already shaped for Steam, but nothing talks to Steam yet:
+
+* **The server decides.** An achievement is granted only inside the action that earns it
+  (``ishtaria-server/src/achievements.rs``) and announced to its owner as an ``achievement`` event. A Steam build
+  would only *mirror* an announced achievement with the Steamworks API (``SetAchievement`` and ``StoreStats``,
+  for example through GodotSteam); the client never decides one itself.
+* **Stable names.** Every entry of ``GET /achievements`` carries ``steam``, its API name in Steamworks: the id in
+  capitals with a datadisk's ``:`` written as ``__`` (``first_harvest`` → ``FIRST_HARVEST``,
+  ``gilgamesh:foundation_reader`` → ``GILGAMESH__FOUNDATION_READER``). Ids never contain a double underscore,
+  so two achievements never share a name. Never rename or reuse an id once it is released.
+* **What Steamworks needs.** Each achievement is entered in the Steamworks settings of the app with its API name,
+  a localised name and description, the hidden flag and two icons (earned and not earned). The catalog has all
+  of them except the icons, which are inventory icons today and have to be rendered at Steam's size; check the
+  *Stats and Achievements* pages of Steamworks for the current rules.
+* **Datadisks.** A disk's achievements (``achievements.yaml``) exist on Steam only if they are entered in the
+  app's settings, so only disks published with the game can have Steam achievements. The client ignores names
+  Steam does not know.
+* **Trust.** Players can join worlds run by anyone, and any world server can announce any achievement. A Steam
+  build has to mirror achievements only from worlds it trusts (the official worlds, by their world identity), or
+  Steam achievements could be farmed on a private server.
+
 Where Ishtaria stands
 ---------------------
 
@@ -243,6 +267,10 @@ Where Ishtaria stands
    * - Company, bank, tax, app fee
      - missing
      - Not a technical task: start early, because the verification takes weeks.
+   * - Achievements
+     - partly
+     - The server grants them and names each for Steamworks (*Achievements* above); the Steamworks API in the
+       client, the trusted-world rule and icons in Steam's size are missing.
    * - Features advertised on the page
      - rule
      - Advertise only what works at launch: no planned federation, no share links (ADR 0011), no seasons.

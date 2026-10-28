@@ -54,7 +54,8 @@ Files
    * - ``portal_panel.gd``, ``escape_menu.gd``, ``control_settings.gd``
      - portals, the menu, display, sound and key settings
    * - ``achievements_client.gd``, ``achievements_panel.gd``, ``achievement_toast.gd``
-     - achievements: the list from the server, the window of the ESC menu, the banner of a new one
+     - achievements: the list from the server (a datadisk's texts come from ``/story/strings``), the window of the
+       ESC menu, the banner of a new one
    * - ``ui/ui_theme.gd``, ``ui/ui_kit.gd``, ``ui/framed_style_box.gd``
      - the interface theme (palette, fonts, Godot ``Theme`` merged into the default one in ``main.gd``)
        and the shared pieces: framed panel, divider, backdrop, open animation, button sounds

@@ -60,7 +60,8 @@ Modules
    * - ``portals.rs``, ``federation.rs``, ``land.rs``
      - portals and links, signing and peers, real-money land leases
    * - ``hall.rs``, ``achievements.rs``
-     - hall of fame; achievements (``etc/achievements.json``), granted inside the earning action
+     - hall of fame; achievements (``etc/achievements.json`` and the datadisks' ``achievements.yaml``), granted
+       inside the earning action, each with its Steam API name
    * - ``scenery.rs``, ``story/``
      - generated towns and props; datadisks, dialogue, quests, NPCs, settlements, wayfarers
 
