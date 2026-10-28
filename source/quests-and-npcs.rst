@@ -74,8 +74,10 @@ Quests
 A quest is a **stage machine**: each stage has a text, optionally a place to ``guide`` the player
 to (or ``reach``), and a ``final`` flag. Dialogue effects move the quest between stages with
 ``set_stage``. The *quest log* (``J``) lists the player's quests and the current stage. Markers
-and a compass point to the place of the current stage. A quest that has not begun points to its
-``start_place`` once the player has the aetherglass item.
+and a compass point to the place of the current stage. A place the player has been sent to (or where
+one of his quests began) stays on the map and compass as a *known place* after the quest moves on.
+A quest that has not begun points to its ``start_place`` only once the player has the aetherglass
+item (the Endland intro gives it; the Gilgamesh disk does not, so unknown quests stay hidden).
 
 Not implemented yet: schedules for characters, quest triggers other than dialogue, and carrying
 story state through portals.

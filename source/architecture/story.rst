@@ -65,8 +65,9 @@ HTTP API
    * - ``GET /story/quests``
      - The player's quests with their current stage.
    * - ``GET /story/markers``
-     - Places the player's quests point to (``guide``/``reach`` of the current stage, or the ``start_place`` of a
-       quest not yet begun); empty until the player holds the aetherglass.
+     - Places the player's quests point to (``guide``/``reach`` of the current stage; the ``start_place`` of a
+       quest not yet begun only while the player holds the aetherglass), followed by the places the player
+       knows from earlier stages (``known: true``, migration ``0060_known_places.sql``).
    * - ``GET /story/strings``
      - Translations of every language (``ETag``).
    * - ``GET /story/media/<disk>/<path>``
