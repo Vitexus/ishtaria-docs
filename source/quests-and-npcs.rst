@@ -60,10 +60,12 @@ have an ``if`` condition, ``effects`` and a ``goto``; with no ``goto`` the conve
 
    * - Conditions (``if``)
      - ``flag``, ``quest_stage``, ``has_item``, ``gold_at_least``, combined with ``all``,
-       ``any`` and ``not``.
+       ``any`` and ``not``. The server also offers the flag ``festival:akitu`` while the Mesopotamian New Year is on
+       (the first new moon after the spring equinox and the eleven days after it, counted from the sky, never stored).
    * - Effects
      - ``give_item``, ``take_item``, ``gold``, ``set_flag``, ``set_stage``, ``once``,
-       ``flourish``, ``set_playable`` (switch the character you play) and ``teleport_place``.
+       ``flourish``, ``set_playable`` (switch the character you play), ``teleport_place`` and
+       ``reveal_places`` (a character tells you where places lie: they stay on your map and compass).
 
 Effects are applied by the server in one transaction; a stale or repeated choice is refused.
 That keeps rewards honest: a client cannot grant itself gold or items.
