@@ -143,6 +143,23 @@ A disk may let the gods' ships cross the sky (``sky_flyers.yaml`` at the disk ro
 
 The lore is the "ancient astronauts" folklore, told in character: what the people of Uruk say, not a claim about history.
 
+Where and when a character stands
+---------------------------------
+
+A character stands at its ``place``. Two optional fields change that:
+
+* ``visible_if`` (a condition, the same as in a dialogue choice): the character is in the world, and can be talked to, only for
+  a player of whom it holds, so a character the story has not brought forth yet is not there. The Gilgamesh disk keeps the
+  civilized Enkidu out of Uruk until Šamḫat has brought him.
+* ``lift_m``: metres above the ground at which a character without a walk stands, such as the goddess and her priests on the top
+  platform of the stepped tower of Ishtar, whose stairs a player climbs.
+
+What a character knows follows the story: a character speaks of an event only once the player has got there (a branch on the
+quest stages), and before that gives an answer without it, so that no dialogue spoils what is still to come.
+
+A landscape patch may carry a ``map`` (an RGBA picture over the same rectangle as its rasters) that the minimap draws: the walls,
+streets, houses and canals of a city (the Gilgamesh disk draws Uruk from its plan with ``tools/build_map.py``).
+
 Generated characters
 --------------------
 
