@@ -27,6 +27,8 @@ Documentation
 CI
 --
 
-Each repository has a GitHub Actions workflow that runs tests and builds the
-``.deb`` as an artifact. Publishing to ``repo.vitexsoftware.com`` is done by
-the existing Jenkins + Aptly pipeline.
+The packages and binaries of a release are built from the primary repository
+(``git.vitexsoftware.com``) and published to ``repo.vitexsoftware.com`` by the existing
+Jenkins + Aptly pipeline. They are **not built from the GitHub mirror**: the GitHub
+Actions workflows (``.github/workflows``) are only a check of the code on the mirror,
+and the release files on GitHub are copies of the builds made from the primary repository.

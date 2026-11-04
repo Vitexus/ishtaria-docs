@@ -4,6 +4,12 @@ Contributing
 Ishtaria is built to be extended by people who play it. This page is for you if you want to add
 a spell, a crop, a quest, a town, a mechanic or a fix.
 
+.. note::
+
+   The primary source of Ishtaria is ``git.vitexsoftware.com/Ishtaria`` (Forgejo). The
+   repositories on GitHub (``github.com/Vitexus``) are a secondary mirror, and packages and
+   binaries are not built from GitHub. See :doc:`repositories`.
+
 Before you start
 ----------------
 

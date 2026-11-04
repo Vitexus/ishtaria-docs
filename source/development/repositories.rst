@@ -1,8 +1,11 @@
 Repositories
 ============
 
-All repositories live in the `VitexSoftware <https://git.vitexsoftware.com/Ishtaria>`_
-GitHub organisation.
+The **primary source** of every repository is the ``Ishtaria`` organisation on
+`git.vitexsoftware.com <https://git.vitexsoftware.com/Ishtaria>`_ (Forgejo), where
+development happens. `GitHub <https://github.com/Vitexus>`_ (``github.com/Vitexus``) is a
+**secondary mirror** of the same repositories. Packages and binaries are **not built from
+GitHub**; they are built from the primary repository.
 
 .. list-table::
    :header-rows: 1

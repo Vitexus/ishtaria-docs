@@ -2,6 +2,10 @@
 
 <img src="https://git.vitexsoftware.com/Ishtaria/ishtaria-client/raw/branch/main/assets/branding/emblem.png" alt="Ishtaria" width="96">
 
+<!-- source-notice -->
+> **Primary source:** <https://git.vitexsoftware.com/Ishtaria/ishtaria-docs> (development happens there). **GitHub** (<https://github.com/Vitexus/ishtaria-docs>) is a secondary mirror; packages and binaries are **not built from GitHub**.
+<!-- /source-notice -->
+
 Documentation of Ishtaria, written in reStructuredText and built with Sphinx.
 
 Published at https://vitexsoftware.github.io/ishtaria-docs/ and as the Debian package `ishtaria-doc`.
