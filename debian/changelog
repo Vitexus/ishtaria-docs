@@ -1,3 +1,10 @@
+ishtaria-docs (0.2.0) unstable; urgency=medium
+
+  * Quests and NPCs: where and when a character stands; datadisk fields
+    visible_if, lift_m, terrain.map and loading_marker.
+
+ -- Vítězslav Dvořák <cybervitexus@gmail.com>  Wed, 04 Nov 2026 05:44:41 +0100
+
 ishtaria-docs (0.1.2) unstable; urgency=medium
 
   * ADR 0020: relief generated into the 16-bit height strip (accepted
