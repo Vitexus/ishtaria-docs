@@ -30,5 +30,6 @@ CI
 The packages and binaries of a release are built from the primary repository
 (``git.vitexsoftware.com``) and published to ``repo.vitexsoftware.com`` by the existing
 Jenkins + Aptly pipeline. They are **not built from the GitHub mirror**: the GitHub
-Actions workflows (``.github/workflows``) are only a check of the code on the mirror,
-and the release files on GitHub are copies of the builds made from the primary repository.
+Actions workflows (``.github/workflows``) that remain only run tests (and build the
+documentation) on the mirror, none of them builds a package or a binary, and the release
+files on GitHub are copies of the builds made from the primary repository.
