@@ -76,7 +76,7 @@ Generated content
      - Standing and wandering land animals, flying birds, fish swimming in water. Domestic
        flocks graze on pastures with a shepherd. Hunted animals fall and return later.
    * - Water
-     - Sea, lakes, ponds and rivers. Wading, swimming and drowning follow the same rule on
+     - Sea, lakes, ponds and rivers. Wading, swimming and drowning (swimming tires; only low stamina drowns) follow the same rule on
        server and client; the client draws local water with a depth-shaded shader.
 
 The world clock

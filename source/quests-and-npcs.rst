@@ -65,7 +65,8 @@ have an ``if`` condition, ``effects`` and a ``goto``; with no ``goto`` the conve
    * - Effects
      - ``give_item``, ``take_item``, ``gold``, ``set_flag``, ``set_stage``, ``once``,
        ``flourish``, ``set_playable`` (switch the character you play), ``teleport_place`` and
-       ``reveal_places`` (a character tells you where places lie: they stay on your map and compass).
+       ``reveal_places`` (a character tells you where places lie: they stay on your map and compass) and
+       ``sky_ship`` (an Easter egg, see below).
 
 Effects are applied by the server in one transaction; a stale or repeated choice is refused.
 That keeps rewards honest: a client cannot grant itself gold or items.
@@ -105,13 +106,42 @@ and finally Gilgameš. The disk ships eleven quests:
 
 Long journeys (the Cedar Forest, Dilmun) use story travel (``teleport_place``) instead of
 walking real distances. If the character dies or a quest fails (for instance Šamḫat on the
-road), the active quest **restarts at its checkpoint** (``fail_restart``) instead of ending in a
-permanent memorial; the server-side logic is in ``ishtaria-server/src/story/checkpoint.rs``.
+road), what happens depends on the quest:
+
+* Without an active quest, or still on its first stage, the death is permanent and leaves a
+  memorial with the inventory, as anywhere else in the game.
+* Past the first stage the active quest **restarts at its checkpoint**: the character returns,
+  with full reserves and the stage kept, to where the quest last changed its stage (recorded by the
+  server whenever a stage changes), or to the quest's ``start_place`` when that spot is unknown or
+  under water. A stage's ``fail_restart`` names the stage and place to return to instead. Everything
+  gained since the checkpoint is lost: each item, gold included, goes back to what was carried
+  then; what was used up meanwhile stays used.
+
+The server-side logic is in ``ishtaria-server/src/story/checkpoint.rs``.
 
 Uruk, Humbaba's lair, the Scorpion Gate and other places are pinned to their historical sites
 on the disk's real planet (``geo: latitude/longitude``) and stand exactly there; see
 :doc:`world-overview`.  The research behind the questline is in the disk's
 ``research/`` directory.
+
+Sky ships (an Easter egg)
+-------------------------
+
+A disk may let the gods' ships cross the sky (``sky_flyers.yaml`` at the disk root: ``interval_s``, ``duration_s``,
+``altitude_m``, ``cities`` and ``ships`` with a ``.glb`` model, a ``scale`` and an ``achievement``). Two things follow:
+
+* **Scheduled flights.** About once an hour (one flight per ``interval_s`` slot, at a moment of it that the clock decides)
+  a ship flies from one city to another. The schedule is a pure function of the time, so nothing is stored and every
+  client sees the same flight; ``GET /story/sky_flights`` answers the kinds of ship and the flights of this and the
+  next hour, and clients draw them high in the sky (``altitude_m``) and in silence. They change no game state.
+* **A flight in your view.** A dialogue effect ``sky_ship: <ship id>`` earns the player the ship's achievement the first
+  time and sends them a short-lived ``sky_flyover`` event; the client then flies that ship close across the player's
+  view (about 350 m ahead and 110 m up, from the left or the right) with a looping sound whose Doppler shift it works
+  out itself, so that its size is seen and heard. The Gilgamesh disk lets six characters tell of
+  its two ships (the winged disc *Sham-a* and the heavenly chariot *Mu/Gir*), so that each earns its own achievement
+  and the player has a reason to talk to people again.
+
+The lore is the "ancient astronauts" folklore, told in character: what the people of Uruk say, not a claim about history.
 
 Generated characters
 --------------------

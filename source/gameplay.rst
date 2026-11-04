@@ -63,10 +63,14 @@ Staying alive
 * **Water** falls only while the client is connected. Drink at a settlement fountain or at
   fresh water (lake, river), or eat watery food.
 * **Swimming**: wading up to chest depth is slower; deeper water means swimming at a
-  fraction of walking speed and slowly losing health. Drowning is a cause of death.
+  fraction of walking speed, without running or jumping. Moving through deep water costs
+  stamina and no health. Only a character whose stamina is low (20 or less, the level at
+  which the HUD bar blinks) drowns: it loses health, about a minute from full, until the
+  stamina is above that level again. Drowning is a cause of death.
 * **Death is permanent.** A dead character leaves one memorial (a grave) holding its
   belongings and gold, with an obituary showing the name, days lived, lifetime gold and the
-  cause of death. Other characters may loot a grave. Story quests of datadisks that say so
+  cause of death; from the second life under a login the name carries its number (``Name II``, in the numerals
+  of the world's datadisk, ADR 0021). Other characters may loot a grave. Story quests of datadisks that say so
   restart at a checkpoint instead; see :doc:`quests-and-npcs`.
 
 Gathering and crafting

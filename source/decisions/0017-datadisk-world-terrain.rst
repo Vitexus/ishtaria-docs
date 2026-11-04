@@ -44,6 +44,18 @@ Decision
   an identity change of worlds generated with the disk (the same as any other manifest
   change). No migration: worlds already generated keep their stored strip.
 
+* A disk with a real planet may also tell its great rivers (``rivers/<name>.yaml``, a course of
+  ``[latitude, longitude, width_m]`` points from the source to the mouth). The coarse map's rivers
+  are at most a few tens of metres wide and end where the cell ends, while the Euphrates of the
+  Gilgamesh disk is 160 m wide at Uruk and has to run from the Armenian highland to the Gulf.
+  The server carves a channel along the course (the profile of the coarse rivers: 2 m deep, the
+  water 0.6 m below the ground, ``ishtaria-server`` ``movement::disk_river_carve``), announces it
+  in ``GET /world`` (``rivers``, unit directions and widths) and the client carves and draws
+  the same line (``surface_environment.gd`` ``set_disk_rivers``). A landscape patch replaces the
+  ground under it and carries its own river, so the course passes through the patch's river
+  (Gilgamesh: ``tools/build_rivers.py`` takes it from the patch's water mask). The course is
+  part of the disk's content hash. The schema is ``river`` in ``ishtaria-protocol``.
+
 Consequences
 ------------
 
