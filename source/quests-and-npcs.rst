@@ -17,8 +17,10 @@ The pilot disks
    * - Datadisk
      - Content
    * - ``ishtaria-datadisk-gilgamesh``
-     - The Epic of Gilgamesh on the Early Dynastic Earth: 244 places, 70 characters,
-       36 dialogues and 11 quests, with Czech and English text and spoken lines.
+     - The Epic of Gilgamesh on the Early Dynastic Earth: about 400 places, 190 characters,
+       70 dialogues and 11 quests, with Czech and English text and spoken lines. Uruk is drawn from a plan
+       of the real city (walls, gates, streets, thousands of houses, canals, fields and a quay on the
+       Euphrates) and has a map of its own.
    * - ``ishtaria-datadisk-endland``
      - The End Land: the town of Udrury, the Blackhorn Tavern and an old graveyard where new
        characters wake up.
@@ -65,8 +67,7 @@ have an ``if`` condition, ``effects`` and a ``goto``; with no ``goto`` the conve
    * - Effects
      - ``give_item``, ``take_item``, ``gold``, ``set_flag``, ``set_stage``, ``once``,
        ``flourish``, ``set_playable`` (switch the character you play), ``teleport_place`` and
-       ``reveal_places`` (a character tells you where places lie: they stay on your map and compass) and
-       ``sky_ship`` (an Easter egg, see below).
+       ``reveal_places`` (a character tells you where places lie: they stay on your map and compass).
 
 Effects are applied by the server in one transaction; a stale or repeated choice is refused.
 That keeps rewards honest: a client cannot grant itself gold or items.
@@ -90,7 +91,8 @@ A worked example: the Epic of Gilgamesh
 
 The Gilgamesh disk is a **finite narrative**, a short arc rather than a grind. The player
 plays several protagonists in turn: the hunter at the water-hole, then Šamḫat, then Enkidu
-and finally Gilgameš. The disk ships eleven quests:
+and finally Gilgameš. The hunter asks at the market of Uruk where the king is to be found and
+walks to the palace; whoever dies in Uruk with the king's errand returns to the palace. The disk ships eleven quests:
 
 * The Hunter and the Wild Man
 * Šamḫat and the Wild Man
@@ -123,25 +125,6 @@ Uruk, Humbaba's lair, the Scorpion Gate and other places are pinned to their his
 on the disk's real planet (``geo: latitude/longitude``) and stand exactly there; see
 :doc:`world-overview`.  The research behind the questline is in the disk's
 ``research/`` directory.
-
-Sky ships (an Easter egg)
--------------------------
-
-A disk may let the gods' ships cross the sky (``sky_flyers.yaml`` at the disk root: ``interval_s``, ``duration_s``,
-``altitude_m``, ``cities`` and ``ships`` with a ``.glb`` model, a ``scale`` and an ``achievement``). Two things follow:
-
-* **Scheduled flights.** About once an hour (one flight per ``interval_s`` slot, at a moment of it that the clock decides)
-  a ship flies from one city to another. The schedule is a pure function of the time, so nothing is stored and every
-  client sees the same flight; ``GET /story/sky_flights`` answers the kinds of ship and the flights of this and the
-  next hour, and clients draw them high in the sky (``altitude_m``) and in silence. They change no game state.
-* **A flight in your view.** A dialogue effect ``sky_ship: <ship id>`` earns the player the ship's achievement the first
-  time and sends them a short-lived ``sky_flyover`` event; the client then flies that ship close across the player's
-  view (about 350 m ahead and 110 m up, from the left or the right) with a looping sound whose Doppler shift it works
-  out itself, so that its size is seen and heard. The Gilgamesh disk lets six characters tell of
-  its two ships (the winged disc *Sham-a* and the heavenly chariot *Mu/Gir*), so that each earns its own achievement
-  and the player has a reason to talk to people again.
-
-The lore is the "ancient astronauts" folklore, told in character: what the people of Uruk say, not a claim about history.
 
 Where and when a character stands
 ---------------------------------
