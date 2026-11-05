@@ -97,9 +97,11 @@ Hunting and combat
 ------------------
 
 Animals can be hunted with the weapon in hand. Dangerous animals bite back after a hit they
-survive, and a creature can kill a character. Animals do not chase and there is **no
-player-versus-player damage**. Story characters show a health bar only when hurt; striking one
-makes it hostile until a dialogue apology (50 gold) clears the grudge.
+survive, and a creature can kill a character. Fierce animals also strike first, unprovoked, at
+a low-level character that comes within their reach (and more boldly while that character lays
+snares for the hunter quest). Animals do not chase and there is **no player-versus-player
+damage**. Story characters show a health bar only when hurt; striking one makes it hostile
+until a dialogue apology (50 gold) clears the grudge.
 
 Magic
 -----
