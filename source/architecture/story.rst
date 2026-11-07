@@ -123,8 +123,9 @@ so a new character wakes up as in the story's opening. Without such a place the 
 Not yet
 -------
 
-Character schedules (hours of the day), quest triggers other than dialogue effects
-(arriving somewhere, owning an item at a given time), collisions with characters,
-story state travelling through portals, and carrying a finder's errand through a
-portal. Walking characters (wander, patrol, herd, travel) and a quest log screen
-are implemented; see :doc:`../decisions/0015-datadisk-walking-characters`.
+Character schedules (hours of the day), quest triggers on owning an item at a
+given time, collisions with characters, story state travelling through portals,
+and carrying a finder's errand through a portal. Walking characters (wander,
+patrol, herd, travel), a quest log screen and the ``reach`` trigger -- a stage
+moved on by arriving somewhere -- are implemented; see
+:doc:`../decisions/0015-datadisk-walking-characters`.

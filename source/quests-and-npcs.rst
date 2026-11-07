@@ -45,8 +45,9 @@ only when hurt, and striking one makes it hostile (see :doc:`gameplay`).
 *Tell me about yourself.* A character with a knowledge card offers a button that shows a
 public-domain picture, a short text and a link to the Wikipedia article in the client's
 language, opened only after confirmation (:doc:`decisions/0019-knowledge-cards`). The generated
-trader, gate guard, shepherd and shipwright and the tutorial's Hammerin have cards; the
-Gilgamesh and Endland characters do not yet.
+trader, gate guard, shepherd and shipwright and the tutorial's Hammerin have cards, and the
+Gilgamesh disk ships 51 of them in its ``knowledge.yaml`` -- twelve on characters and the rest on
+readable structures. The Endland characters have none yet.
 
 Dialogue model
 --------------
@@ -83,8 +84,10 @@ one of his quests began) stays on the map and compass as a *known place* after t
 A quest that has not begun points to its ``start_place`` only once the player has the aetherglass
 item (the Endland intro gives it; the Gilgamesh disk does not, so unknown quests stay hidden).
 
-Not implemented yet: schedules for characters, quest triggers other than dialogue, and carrying
-story state through portals.
+A stage may also be moved on by reaching a place (``reach``, ``story/api.rs`` ``advance_reach``),
+which five stages of the Gilgamesh questline use, and the hunting quest is carried by the snares
+of ``etc/traps.json``. Not implemented yet: schedules for characters, and carrying story state
+through portals.
 
 A worked example: the Epic of Gilgamesh
 ---------------------------------------

@@ -74,8 +74,9 @@ Milestones
    * - M9
      - Complete the base game
      - What players of today expect and the game still lacks: skills instead of a single experience
-       level, a hotbar, a minimap, weather and sleeping in a bed, a tutorial for new players, graphics
-       and accessibility settings. Open design questions: player versus player, animals that chase,
+       level, a hotbar, weather and sleeping in a bed, a tutorial for new players, graphics
+       and accessibility settings. (A minimap ships: the HUD draws one, and a datadisk may hand it
+       a baked picture of a city.) Open design questions: player versus player, animals that chase,
        protection of leased land, collision of placed things.
    * - M10
      - Release on Steam (optional)

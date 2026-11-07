@@ -1,7 +1,7 @@
 0017 – Datadisks bring the whole real planet
 ============================================
 
-:Status: Accepted by the project owner and implemented in the working trees (not yet released)
+:Status: Accepted and implemented; its 8-bit strip superseded by :doc:`0020-generated-relief`
 :Date: 2026-10-15
 
 Context
@@ -32,7 +32,8 @@ Decision
   from the rasters instead of the noise, with the sphere mapped to the planet's real
   geography as latitude = asin(y) and longitude = atan2(-z, x) (the +Y face is the north
   pole), so the server's compass bearings and historical distances are the real ones. The
-  strip keeps the standard 8-bit encoding; the water mask clamps every water pixel at or
+  strip kept the standard 8-bit encoding when this was written and is 16-bit since
+  :doc:`0020-generated-relief`; the water mask clamps every water pixel at or
   below sea level and every land pixel above it, so shallow seas and dry depressions survive
   the quantisation.
 * The seed stays part of the world's identity (it drives the seeded local relief and the

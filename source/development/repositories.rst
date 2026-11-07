@@ -36,5 +36,22 @@ GitHub**; they are built from the primary repository.
    * - `ishtaria-docs <https://git.vitexsoftware.com/Ishtaria/ishtaria-docs>`_
      - CC BY-SA 4.0
      - This documentation (Sphinx, reStructuredText).
+   * - `ishtaria-admin <https://git.vitexsoftware.com/Ishtaria/ishtaria-admin>`_
+     - MIT
+     - Text-mode administration of a world server (Turbo Vision, C++): maps, players,
+       linked worlds, the service and the solar clock.
+   * - `ishtaria-web <https://git.vitexsoftware.com/Ishtaria/ishtaria-web>`_
+     - CC BY-SA 4.0
+     - The public portal: what the game is, how to start, where to download it.
+   * - `ishtaria-datadisk-gilgamesh <https://git.vitexsoftware.com/Ishtaria/ishtaria-datadisk-gilgamesh>`_
+     - CC BY-SA 4.0
+     - The Epic of Gilgamesh: Early Dynastic Uruk on a reconstructed Earth, with its
+       places, characters, dialogues, quests and spoken lines.
+   * - `ishtaria-datadisk-tutorial <https://git.vitexsoftware.com/Ishtaria/ishtaria-datadisk-tutorial>`_
+     - CC BY-SA 4.0
+     - A datadisk that demonstrates the implemented features through guided tutorials.
+   * - `ishtaria-datadisk-endland <https://git.vitexsoftware.com/Ishtaria/ishtaria-datadisk-endland>`_
+     - CC BY-SA 4.0
+     - The pilot story datadisk, set in The End Land universe.
 
 Why these licences: see :doc:`../decisions/0004-licensing`.
