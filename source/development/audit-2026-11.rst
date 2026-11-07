@@ -1,0 +1,1716 @@
+Audit (November 2026)
+=====================
+
+A cross-repository review of visual quality, gameplay, user experience and
+technical state, carried out on 7 November 2026 against the then-current
+``main`` of every repository.
+
+Findings carry stable ids so that later work can refer to them: ``B-``
+security, ``V-`` visual, ``H-`` gameplay, ``O-`` content and documentation,
+``T-`` technical. Priorities are ``P0`` critical, ``P1`` high, ``P2`` medium,
+``P3`` low.
+
+.. contents::
+   :local:
+   :depth: 1
+
+How this audit was made
+-----------------------
+
+**Read:** the working tree and git state of every repository; 20,375 lines of
+GDScript in ``ishtaria-client/scripts/``; 45,321 lines of Rust in
+``ishtaria-server/src/``; all 70 migrations; ``ishtaria-server/etc/*.json``;
+the six shaders; Makefiles and export presets; ``ishtaria-worldgen/src/``;
+``ishtaria-core/src/``; the Gilgamesh datadisk; ``ishtaria-web/site/``.
+
+**Built and run:** every package was built with ``dpkg-buildpackage`` and
+installed on the development machine, a world was generated with
+``ishtaria-server-init 2577465639 256 gilgamesh`` (the seed the cinematic uses,
+so that the client can be compared against those renders), and the client was
+run against it on a real X server with a GeForce RTX 3060 and a working Vulkan
+driver. Six screenshots of Uruk were taken with
+``tests/uruk_ground_look.gd``. Those screenshots, not the ones on the website,
+are the visual evidence behind the ``V-`` findings.
+
+**Not measured:** no frame times, no memory figures and no ``EXPLAIN`` plans
+were taken. Every performance finding below is derived from code and constants
+and says so. They are predictions to be tested, not measurements.
+
+Three findings were withdrawn or softened when the live client contradicted
+them; they are kept in the text with the correction, because the reason they
+were wrong is itself worth knowing.
+
+Executive summary
+-----------------
+
+Ishtaria is unusually far along in its **systems** and unusually far behind in
+its **presentation**.
+
+The server is 45,321 lines of Rust with 70 migrations and 273 tests. Its
+transactional discipline is consistent: roughly 60 transactions and 35
+``FOR UPDATE`` row locks, with two advisory locks. Movement cannot be cheated,
+because the server derives the timestep from ``clock_timestamp()`` itself and
+requires a strictly increasing sequence. Gold is never a request parameter.
+Federation verifies Ed25519 signatures with domain separation and TOFU
+pinning. Twenty-one decision records explain the architecture, and the root
+``AGENTS.md`` is candid to the point of listing which features have never been
+seen in a played session.
+
+That candour points at the first problem: **much of the value is finished on
+the server and has never been seen in play.** Of 34 client test targets, 33
+run ``--headless``; the suite proves logic, not appearance.
+
+The second problem is that **the visual gap is not caused by the assets.** The
+Blender scene in ``gilgamesh-cinematic`` is built from the same models, the
+same textures and the same live server data, and looks far better. The
+difference is tonemapping, exposure, a sun calibrated to the sky, fog, global
+illumination and character scale -- not content that has to be bought.
+
+The third is that the world is **silent and unpeopled**. The client ships four
+sound files, all interface clicks. NPCs have four geometric movement loops, no
+daily schedules, and can be walked through.
+
+The fourth, and the most underrated: **the story and the game never meet.**
+The Gilgamesh disk is rich (402 places, 189 characters, 71 dialogues, 809
+player choices) and historically careful, yet across every dialogue there is
+not one ``give_item``, ``take_item`` or ``gold`` effect, and only five of 809
+choices carry a consequence. A player can finish the epic without their
+inventory, purse or standing changing.
+
+Above all of this sits one security finding, ``B-01``, which should be fixed
+before anything else.
+
+Current state of the systems
+----------------------------
+
+"Unseen" means finished on the server but never verified in play.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 12 12 14 14 26
+
+   * - System
+     - Server
+     - Client
+     - Looks
+     - Plays
+     - Main limit
+   * - Accounts, sign-in
+     - done
+     - done
+     - --
+     - --
+     - **B-01 empty passwords**
+   * - Walking, running
+     - done
+     - done
+     - weak
+     - good
+     - 4 m/s is 14.4 km/h; ``T-04``
+   * - Swimming, drowning
+     - done
+     - done
+     - unseen
+     - good
+     - probed only
+   * - Survival reserves
+     - done
+     - done
+     - --
+     - good
+     - --
+   * - Permanent death, graves
+     - done
+     - done
+     - unseen
+     - good
+     - ``T-06`` full ``graves`` scan
+   * - Gathering
+     - done
+     - done
+     - weak
+     - **weak**
+     - ``H-01``, ``H-02``
+   * - Crafting (37 recipes)
+     - done
+     - done
+     - --
+     - **weak**
+     - ``H-02``, ``H-03``
+   * - Building, farming
+     - done
+     - done
+     - unseen
+     - unseen
+     - no collision, no protection
+   * - Hunting, animal combat
+     - done
+     - done
+     - unseen
+     - good
+     - animals do not chase
+   * - Shops
+     - done
+     - done
+     - unseen
+     - good
+     - ``T-09`` stack durability
+   * - Player exchange
+     - done
+     - done
+     - unseen
+     - good
+     - ``T-09`` ``cancel`` unguarded
+   * - Magic (6 spells)
+     - done
+     - done
+     - unseen
+     - weak
+     - Day/Night shift the whole world
+   * - Story, dialogue
+     - done
+     - done
+     - **good**
+     - **weak**
+     - ``O-01``, ``O-02``
+   * - Quests (11, 69 stages)
+     - done
+     - done
+     - --
+     - good
+     - ``H-05``, ``O-03`` distances
+   * - Achievements (14)
+     - done
+     - done
+     - unseen
+     - weak
+     - no counters
+   * - NPCs, living world
+     - weak
+     - weak
+     - **weak**
+     - **weak**
+     - ``H-06``: no schedules, passable
+   * - Chat, friends
+     - done
+     - done
+     - --
+     - good
+     - ``T-07`` ``players`` scan
+   * - Portals, federation
+     - done
+     - done
+     - unseen
+     - unseen
+     - no replay nonce (``B-04``)
+   * - Land leases
+     - done
+     - **absent**
+     - --
+     - --
+     - ``H-07``: 560 lines, no UI
+   * - Vehicles (one boat)
+     - done
+     - done
+     - unseen
+     - weak
+     - **no tests at all**
+   * - Sound
+     - --
+     - **absent**
+     - **absent**
+     - **absent**
+     - ``V-05``
+   * - Web build
+     - --
+     - done
+     - --
+     - --
+     - ``T-01``: no threads, 296 MB
+
+Security
+--------
+
+B-01 -- passwordless accounts can be taken over and destroyed (P0, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The chain, each link read in the source:
+
+#. ``ishtaria-server/src/players.rs:181``::
+
+     || (!credentials.password.is_empty() && !(8..=128).contains(&credentials.password.len()))
+
+   The ``!is_empty()`` guard means an **empty password skips the minimum
+   length entirely**, so a passwordless account is valid.
+#. ``ishtaria-client/scripts/character_creator.gd:141`` labels the field
+   ``tr("Optional password")``, actively inviting players to leave it blank.
+#. ``password_job`` verifies the supplied password against the stored hash;
+   for an account created with ``""`` a sign-in with ``""`` succeeds.
+#. Usernames are public. ``hall.rs:33`` returns ``players.username`` in the
+   hall of fame and ``chat.rs:58`` returns every nearby player's name.
+#. Rate limiting does not help, because nothing has to be guessed.
+
+Under this game's own rules the consequence is severe: an attacker signs in as
+any passwordless character and can **destroy it permanently** -- walk it into
+deep water at low stamina, or strike an NPC until it kills them -- leaving a
+lootable grave. There is no character restore.
+
+**Fixed on 7 November 2026.** ``validate`` in
+``ishtaria-server/src/players.rs`` now requires 8 to 128 characters
+unconditionally, and the client's single gate,
+``ishtaria-client/scripts/player_session.gd``, carried the *same* escape
+hatch and was corrected with it.
+
+A self-service rescue was considered and rejected. Letting a sign-in with an
+empty password set a new one would hand the account to whoever asked first:
+a passwordless account has no secret, so there is no way to tell its owner
+from anyone else. Accounts created before the rule can therefore only be
+rescued by the operator, who can set a hash directly in the database;
+``ishtaria-admin`` has no command for this yet, which is worth adding.
+
+``tests.rs::survival_empty_password`` asserted the old behaviour and was
+rewritten as ``survival_password_rules_and_position``; four other tests used
+empty passwords incidentally and were given real ones. All 273 server tests
+pass, including the 77 PostgreSQL ones.
+
+B-02 -- ``GET /world/objects`` writes, and needs no sign-in (P1, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``movement.rs:3451-3523``. Authentication is optional (``:3465-3469``: a
+failed token yields ``player_id = None`` and the request proceeds), yet the
+handler calls ``loot::near`` -> ``scoop_near`` / ``deliver_near``, which
+**write**: NPCs pocket ground items and errands are dispatched. Coordinates
+are validated only as ``RADIUS ± 8000 m``, so an unauthenticated client can
+make NPCs scoop another player's dropped loot anywhere on the planet, at 100
+requests a second per address.
+
+**Fixed on 7 November 2026.** ``loot::near`` now takes the viewer's id and
+runs ``scoop_near`` and ``deliver_near`` only when a signed-in, living
+character of this world is standing within ``VIEWER_REACH_M`` (1000 m) of the
+point -- the client asks about the ground under itself and asks again every
+100 m, so this is generous. The read of the piles is unchanged, so an
+anonymous client still sees what lies about; it simply no longer moves it.
+
+The predicate is ``loot::viewer_is_there`` and is covered by
+``tests::loot::only_a_viewer_who_is_there_moves_the_ground``: the character at
+the point qualifies, one five kilometres away does not, an unknown id does
+not, and a dead character does not. A discriminating end-to-end test of the
+scooping itself would need generated settlement NPCs in the test world, which
+the current fixtures do not provide.
+
+B-03 -- a character can be bricked by its own move sequence (P2, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``movement.rs:3572`` requires a strictly increasing ``sequence`` with no upper
+bound below ``i64::MAX``. A client that once sends ``"9223372036854775807"``
+pins ``players.movement_sequence`` at the maximum and the character can never
+move again. Death is permanent, so there is no way back. Bound the accepted
+sequence to a window around the current value.
+
+B-04 -- federation hardening gaps (P3, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``federation.rs:117`` accepts plaintext ``http://``, so an attacker on the
+path at first contact can substitute the TOFU key permanently. Signed portal
+messages (``portals.rs:718-725``) have a validity window but no replay nonce;
+the state machine blocks abuse today, but only indirectly.
+
+Visual quality
+--------------
+
+V-01 -- the target look already exists, outside the engine (P1, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``gilgamesh-cinematic`` is a Blender 4.3.2 project whose scene is built **from
+live server data** (``export_world_snapshot.gd``; 2345 objects, 61 NPCs, 77
+props, seed 2577465639) using the same CC0 ground textures as the client and
+the same 0 A.D. and Quaternius models. Its README states the whole difference:
+
+   Cycles CUDA, 24 samples, OPTIX denoiser, motion blur 0.5, **AgX - Medium
+   High Contrast, exposure 0.6**. Lighting: a sun calibrated to the equirect
+   sky (az 19.6 deg, elev 10.6 deg), a fill light, mist toward the horizon
+   colour and point lights in the Ishtar gate passage.
+
+Treat that as the rendering budget to reach, not as marketing. It is the
+cheapest art direction available, because it is already done and already
+agreed.
+
+V-02 -- the client has no post-processing at all (P1, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Nowhere in ``ishtaria-client/scripts/`` do ``tonemap``, ``ssao``, ``ssil``,
+``sdfgi``, ``glow_`` or ``adjustment_`` appear, and there is no
+``ReflectionProbe`` and no screen-space reflection. ``planet_sky.gd`` sets an
+ambient colour (``:94-96``), depth fog with aerial perspective (``:330-341``)
+and volumetric fog (``:347-359``) -- nothing else. Godot therefore runs on its
+default linear tonemapper with no exposure control.
+
+**Partly corrected by measurement.** The absence of a tone mapper is real.
+The consequence first claimed here -- blown highlights -- is **not**: the Uruk
+screenshots contain 0.00 per cent of pixels at or above 250/255. What does
+hold is that nothing darkens where a wall or a tuft of grass meets the
+ground, and that shadows have hard edges and no penumbra.
+
+An attempt on 7 November 2026 to adopt the cinematic's figures directly was
+**reverted**, and the reason is worth recording:
+
+* Blender's "exposure 0.6" is a stop offset applied before AgX. Godot's
+  ``tonemap_exposure`` is a linear multiplier over the whole image. They are
+  different quantities, and copying the number across darkened the scene by
+  half.
+* Measured on the same frame with the sun pinned at 42 degrees (the Uruk test
+  fixes local noon, so the runs are comparable): mean luminance 119/255 with
+  no tone mapper, against 61 at exposure 0.6, 89 at 1.2 and 99 at 1.6. AgX
+  also narrowed the RGB spread from 34 to 14, draining the warm sand tone
+  that carries the setting.
+* ``ssao_radius`` is in world units, and the scene is in kilometres, so a
+  default of 1.0 reaches a kilometre; it has to be scaled (2 m is 0.002).
+  Even scaled, no benefit could be demonstrated, and a large dark region
+  appeared in the close shots which was **not** isolated -- measurement
+  showed more near-black pixels with SSAO off than on, so the band has
+  another cause still unknown.
+
+The opportunity stands, but it is an art-direction task to be done against
+measured frames, not a parameter transplant. Treat the cinematic as the
+reference for *how the picture should read*, and derive Godot's values
+experimentally. The Uruk tests plus a pinned sun make that loop cheap: the
+procedure used above is a usable harness.
+
+V-03 -- the detail terrain is too coarse, so the world reads as flat (P1, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``surface_environment.gd:26-34``::
+
+  const DETAIL_RADIUS := 0.7          # km
+  const DETAIL_RADIUS_MAX := 2.4      # km (Uruk)
+  const DETAIL_SEGMENTS := 128
+  const DETAIL_SEGMENTS_MAX := 192
+
+The grid spans ``2 * radius`` divided by ``segments``: about 10.9 m per cell
+normally and about **25 m at Uruk**. Seeded relief is at most +/-12 m (ADR
+0020), so sampling it every 25 m leaves nothing visible. Beyond the disk there
+is only the coarse globe, whose "78 km triangles sag up to about 120 m below
+the real surface" (``surface_environment.gd:877``). The mesh has no
+``ArrayMesh`` LOD surfaces either -- one level only.
+
+**Confirmed by looking.** Across a whole aerial view of Uruk there is not one
+undulation. The close-up ground material (cracked dried mud) is good; the
+fault is entirely in the geometry, not the texture.
+
+Separate the grid density from the radius -- a ring LOD, dense in the middle
+and sparser at the rim -- so Uruk can be refined without changing view
+distance, and add a detail normal map and macro colour variation to break the
+tiling.
+
+V-04 -- NPC name labels do not scale sanely (P1, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``surface_environment.gd:1532-1542``, and the same in
+``remote_players.gd:131-137``::
+
+  label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+  label.pixel_size = 0.006
+  label.font_size = 40
+
+**An arithmetic claim in an earlier draft of this finding was wrong and is
+corrected here.** It read ``pixel_size = 0.006`` against a kilometre scene and
+concluded 6 m per pixel, a caption 240 m tall. The label is a child of the
+placement node, which ``surface_environment.gd:1529`` scales by
+``(scale_m / 1.8) / 1000.0``, so one font pixel is about 6 mm and the caption
+is roughly 0.24 m. The size is right; this is a reminder that in this project
+no unit may be read without its parent transform.
+
+What is actually missing is ``fixed_size``, any distance culling and any
+declutter. Because the label scales with perspective, it is well judged at
+middle distance -- a market shot taken for this audit shows seventeen names
+above seventeen heads, legible, with only two pairs touching -- and far too
+large close up: the eye-level market screenshot on the website has two names
+filling half the frame, four more collapsing into a pile, and one spilling
+past the screen edge and over the dialogue panel.
+
+**Partly fixed on 7 November 2026.** ``surface_environment.gd`` now draws a
+name only while the character is within ``NAME_VIEW_M`` (35 m) of the camera,
+reconsidered four times a second rather than per frame. Verified on the Uruk
+market: characters beyond the range lose their names, nearer ones keep them,
+and ``tests/surface_environment.gd`` still passes its 1930 checks.
+
+An eye-level shot of the market (``ISHTARIA_SHOTS="eye:2:3"`` on the Uruk
+test) reproduces the website's symptom exactly -- "Expectant mother" across
+half the frame, "Market woman" over "Boy", "Barley Farmer" cut by the top
+edge -- so the close-range problem is real.
+
+**``fixed_size`` was tried and is the wrong tool**, which is worth recording
+because it is the obvious first idea. One size for every name means the names
+of the crowd behind stop shrinking, so at ``pixel_size`` 1.5 the whole market
+collapses into an illegible heap across the middle of the frame, and at 6.0
+into a solid white band. Perspective is not the problem here: shrinking with
+distance is exactly what keeps the people behind readable and gives the
+names a depth order.
+
+**Fixed instead by showing fewer names.** ``NAME_SHOWN_MAX`` (6) draws only
+the nearest few inside ``NAME_VIEW_M``, sized by perspective as before.
+Verified on the ``walk:3:8`` framing of the market: six names, ordered by
+distance, one slight overlap, and no clutter over the crowd behind -- against
+a name above every character in the region before. ``tests/surface_environment.gd``
+passes its 1930 checks, with ``story_client``, ``fauna_client``, ``minimap``
+and ``placed_client`` unaffected.
+
+One measuring note for later work here: the eye-level framing is a **poor
+rig**, because heads sit above the top edge, so a label that is merely small
+looks identical to one that is absent. Measure on ``walk:3:8``.
+
+V-05 -- the game is effectively silent (P1, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ishtaria-client/assets/`` contains **four** sound files, all interface
+clicks. The only ``AudioStreamPlayer3D`` in the client is the sky-ship easter
+egg (``sky_ships.gd:159``); searches for ``footstep``, ``wind``, ``ambient``
+and ``crowd`` return nothing. Music exists only from datadisks.
+
+There are no footsteps, no wind, no water, no market noise, no tool or combat
+sounds. For a game aiming at immersion this is probably the single largest
+loss of atmosphere, and among the cheapest to repair.
+
+V-06 -- characters are about twice the size of the architecture (P1, large)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ishtaria-client/scripts/character_catalog.gd:26-29``::
+
+  ## The Kenney characters stand 3.76 units tall in the client for a person of 1.8 metres.
+  const GLTF_UNITS_PER_METRE := 2.09
+
+Characters are scaled by ``Vector3.ONE * 0.001`` into a kilometre scene
+(``character_controls.gd:218``, ``remote_players.gd:129``), and a datadisk's
+realistic glTF models are **enlarged** by ``GLTF_UNITS_PER_METRE``
+(``character_catalog.gd:140``) to match them. Architecture, interaction
+ranges and wading depth (``WADE_DEPTH_M`` 1.2 m) are in true metres.
+
+The project knows: ``gilgamesh-cinematic/README.md`` records that the game
+keeps 2.70 m people, calls the 2.09x factor a client quirk, and deliberately
+does not apply it in the video. The error has spread into movement tuning --
+``WALK_SPEED`` 4.0 m/s is 14.4 km/h and ``RUN_SPEED`` 6.0 m/s is 21.6 km/h,
+roughly three times human, but plausible next to a 2.7 m figure.
+
+Unify on true metres with one factor and correct what derives from it: camera
+height, ``head_height``, label and health-bar anchors, and the speeds.
+
+V-07 -- the water has nothing to reflect (P2, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``scripts/local_water.gdshader`` is thoughtful (depth colour, ``exp(-depth *
+clarity)`` clarity, two wave trains, shore foam, ``SPECULAR = 0.6``) but
+relies on PBR reflection. With no reflection probe and no SSR (``V-02``) only
+the sky is reflected, so water reads as a flat grey sheet.
+``river_ribbon.gdshader`` draws distant rivers in a single flat colour
+(``ALBEDO = vec3(0.04, 0.19, 0.25)``) with no waves at all.
+
+V-08 to V-10 -- interface defects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* **V-08** Of the three complaints first recorded here, **two were wrong**
+  and are corrected. The map does not leave the world showing through: its
+  backdrop is a ``Sprite2D`` at alpha 0.9 (``minimap.gd:27``), and a new
+  native case in ``tests/minimap.gd`` paints the big map over a magenta
+  ground and measures under 5 per cent of it surviving. The HUD does not
+  cover the map either: the minimap is ``layer = 3`` (``minimap.gd:148``) and
+  the HUD ``layer = 2``. Both readings came from a screenshot where the map
+  happened to be open over a dim scene.
+
+  The third stands and is **fixed**: the legend sat at ``(12, 12)``, exactly
+  where ``quest_indicator.gd:24`` puts the active quest, so the two were laid
+  on top of each other. The legend now runs along the top right, with the
+  test asserting it stays in the right half of the window.
+* **V-09** The dialogue panel truncates the speaker's line mid-sentence behind
+  a scrollbar while five answers take most of the panel. **The second half of
+  this finding -- that the HUD draws over the panel -- is wrong**: the panel
+  is ``layer = 4`` (``dialogue_panel.gd:65``) and the HUD ``layer = 2``
+  (``player_hud.gd:50``), so the panel is on top. On the website screenshot
+  the panel simply ends where the HUD begins.
+
+  The truncation was real and is **fixed**. The panel was a fixed 300 px with
+  the speech squeezed to a 48 px minimum while the answers took their full
+  height, so five answers left the line one visible row. It now sizes the
+  line from the wrapped text (``SPEECH_MIN_HEIGHT`` 96, ``SPEECH_MAX_HEIGHT``
+  220) and grows within the window, and both the line and the answers scroll
+  when the window is too short -- a ``PanelContainer`` cannot be shrunk below
+  its content, so without that the panel hung off the bottom of a 640x480
+  screen.
+
+  ``tests/panels_look.gd`` gained a ``dialogue_long`` case (a four-line reply
+  with five answers) which **fails on the original code at 640x480** -- the
+  panel overflowed by 98 px there before any of this, so the small-screen
+  defect predates the change and was simply never covered. All panel checks
+  now pass at 1600x900 and 640x480, with ``about_card``, ``story_client`` and
+  ``quest_indicator`` unaffected.
+* **V-10** ``minimap.gd:139-145`` always draws a 50 m scale bar, which
+  degenerates to a few pixels at ``MIN_ZOOM_BIG = 0.08``; its label is the
+  hardcoded string ``"50 m"`` (and a second default ``"100m"`` at ``:235``),
+  neither translated. ``minimap.gd:411`` labels every NPC and player with a
+  **single initial**, so several "G"s are indistinguishable. ``minimap.gd`` is
+  also the only panel that does not use ``UiKit``, carrying a 20-constant
+  private palette that duplicates ``UiTheme``.
+
+V-11 -- market stalls read as a board game (P2, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Found in the live client. ``gilgamesh:uruk_market`` renders as saturated red,
+blue, green and cyan canopies in a regular lattice. From above it reads as a
+board game rather than a market, the chroma does not correspond to any
+plausible Early Dynastic dye, and it sits beside carefully textured mud-brick
+houses as an obviously foreign layer. Desaturate toward reed, linen and madder,
+and break the lattice.
+
+V-12 -- untextured buildings and glTF import errors (P2, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Several buildings in the live screenshots render as flat untextured cream
+boxes among fully textured neighbours. Separately, the client package build
+emits **74 glTF import errors** of the form ``Invalid byte stride 312 for
+buffer view at index 11 while importing file 'pig'``. Both point at asset
+import problems that no test catches.
+
+Gameplay
+--------
+
+H-01 -- tools cannot be made, yet gathering requires one (P1, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ishtaria-server/src/gathering.rs:465-472``::
+
+  // Only the tool in hand counts, and only while the character still owns it.
+  let tool = equipped.ok_or_else(|| status(StatusCode::CONFLICT, "required tool missing"))?;
+  let points = resource.tools.get(&tool)
+      .ok_or_else(|| status(StatusCode::CONFLICT, "required tool missing"))?;
+
+Bare-handed gathering is impossible. The starter kit
+(``migrations/0049_starter_scroll_day.sql:9-11``) grants **one** axe, **one**
+pickaxe and a sword, with the axe equipped and 100 durability
+(``migrations/0050_item_quality.sql:7``). Tools wear out and break
+(``src/durability.rs``). None of the 37 recipes in ``etc/recipes.json``
+produces an axe or a pickaxe; only a town's ``general`` shop sells them.
+
+A character whose two tools break far from a town, without the price of new
+ones, falls out of the whole gathering -> crafting -> progression loop. With
+permanent death that is a trap. Add a weaker, faster-wearing stone axe and
+pickaxe so the loop has a renewable input.
+
+This is also a **hard prerequisite** for closing shops at night (see
+``H-06a``).
+
+H-02 -- the crafting tree consumes nothing (P2, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+All 37 recipes take **one** of each input: one iron ingot for metal armour,
+one hide for leather armour, one plank for a workbench. There is no reason to
+gather more than a few of anything, and therefore no reason to return to
+gathering. Nine gatherable resources feed 37 recipes with no chain deeper than
+ore -> ingot -> item.
+
+H-03 -- the materials are not those of Early Dynastic Sumer (P2, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``etc/resources.json`` is built on ``pine_tree``, ``oak_tree``, ``birch_tree``
+and ``iron_ore``. Recipes produce ``make_claymore`` (a 15th-century Scottish
+sword) and ``make_shield_heater`` (a 12th-century European shield). The
+starter kit hands out an **iron** axe and pickaxe.
+
+Uruk around 2700 BCE is the Bronze Age, and neither birch nor pine grows in
+southern Mesopotamia. The materials that define the period are missing: mud
+brick, reed, bitumen, barley, dates, wool, copper and tin.
+
+The sharpest form of this: the market holds NPCs named Baker, Ale-wife of Uruk
+and Barley Farmer, while the server catalog contains **no barley, no bread and
+no beer** -- the foundation of both the Sumerian economy and the epic itself.
+
+H-04 -- finished work that nobody has seen (P1, large)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The root ``AGENTS.md`` itself records that the shepherd and flock, the cart
+track, the ox wagon and camel driver, vehicles, sky ships, and every game
+window have never been verified in a played session. The test suite matches:
+33 of 34 client targets run ``--headless``, so the suite proves logic and not
+appearance. Of the fifteen scripts that save screenshots, ten do guard on
+``DisplayServer.get_name() != "headless"`` and skip the image work; the
+remaining five do not. Four tests have no ``make`` target at all, among them
+``tests/uruk_aerial.gd`` and ``tests/uruk_ground_look.gd`` -- precisely the
+visual references this audit needed, and the ones used to produce its
+screenshots. ``.github/`` contains no workflow.
+
+Make a played session a routine verification step, give the Uruk tests
+targets, add an ``xvfb-run`` variant for the screenshot tests, and put them in
+CI.
+
+H-05 -- the first quest is mostly walking (P2, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``quests/the_hunter_and_the_wild_man.yaml`` has 13 stages and follows Tablet I
+faithfully, with real structure: ``guide`` for the compass, ``reach`` as a
+non-dialogue trigger, ``fail_restart`` checkpoints and ``known_places``.
+
+But the route runs from the water-hole through the village to Uruk, to the
+palace, to the temple and back to the water-hole, and the disk puts the
+water-hole 12 km from Uruk. At ``WALK_SPEED`` that is about 50 minutes each
+way, or 33 on a road. There is no fast travel: no mounts, ships are items with
+no sailing, and the only vehicle is a single fishing boat. The first five
+stages are a waiting loop (``etc/traps.json``: 28 m clearance, 12 s hold).
+
+Do not shorten the epic -- give the road content, and consider a period-
+appropriate one-way passage between discovered places.
+
+H-06 -- the world is not inhabited (P1, large)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+NPCs have four movement kinds (``story/walking.rs:314-316``: ``Wander``,
+``Herd``, ``Patrol``, ``Travel``), all stateless geometric loops driven by the
+clock. **There are no daily schedules**: the only night test anywhere in
+``story/`` is ``eggs.rs:89 is_night()``, for easter eggs. NPCs do not go home,
+do not open or close shops, do not work and do not react to events. They are
+also passable.
+
+**Confirmed by looking.** A whole quarter of Uruk held two visible characters.
+
+H-06a -- residents should sleep at home and come out in the morning (P1, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Requested by the project owner. It fits the existing architecture cheaply,
+because ``ishtaria-server/src/story/walking.rs:305`` is already a **pure
+function** of identity, place and time::
+
+  pub fn route(ground: &dyn Ground, id: &str, home: [f64; 3], site: [f64; 3],
+               movement: &Movement, now_ms: i64) -> Vec<[f64; 4]>
+
+``wander()`` divides time into fixed slots and computes each slot's target
+deterministically, with a per-slot cache. A schedule is therefore **not a
+simulation**: the slot's destination simply becomes a function of that slot's
+solar time. No new table, no tick, and determinism is preserved. The server
+already has the solar clock (``atmosphere.rs``, ``worlds.solar_offset_seconds``,
+``story/eggs.rs:89``).
+
+Homes should be assigned deterministically rather than authored: the Gilgamesh
+disk's ``buildings/uruk.yaml`` lists **1362 houses** with position and
+rotation, so hashing an NPC id into that list houses all 189 residents without
+a hand-written line. At night a resident is withdrawn from ``/world/objects``
+only once it has reached its door, so nobody pops out of existence mid-street;
+the client already lights lamps at night (``surface_environment.gd:2686``).
+Generated settlements (``etc/villager.yaml``, about 36 towns) need the same
+treatment, or only one city on the planet will come alive.
+
+**A trap to handle:** the Day and Night spells shift
+``worlds.solar_offset_seconds`` for the whole world (``magic.rs:411``), so the
+schedule must be computed from the shifted clock **and that offset must join
+the slot cache key** in ``wander()``, which today keys on ``ground.cache_id()``
+and ``home`` only.
+
+Decided by the project owner:
+
+* **Quest characters sleep too, but can be knocked up.** ``E`` at their door
+  brings them out, so a quest cannot stall. This is the expensive part: a new
+  interaction in client and server plus a small amount of state, for which
+  ``npc_pauses`` (migration ``0040``) is the existing pattern.
+* **Shops close at night, but only after H-01 is fixed**, because gathering
+  requires a tool that cannot be crafted, and a closed shop would otherwise
+  end a player's evening.
+
+**The dark is not a defect.** A night shot of Uruk taken during this audit is
+almost entirely black, with only the walls and a few buildings lit. Recorded
+here because it looks like a missing feature and is not: an ancient city was
+lit sparsely, people did not feed a fire all night, and nothing else gave
+light. Lamps already exist and burn only after dark
+(``surface_environment.gd`` ``LAMP_MODELS``, ``LAMP_ENERGY``, the flicker in
+``_flicker_lamps``). A schedule that empties the streets and lets the fires
+die is the authentic picture, not a regression to be brightened away.
+
+Cheapest first step: 97 of Uruk's 189 characters share the single
+``crowd_passersby`` dialogue. They have no story role, so giving them
+schedules first has the largest visible effect and no risk to any quest.
+
+H-08 -- a new character can be killed before it can move (P0, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Found by playing, not by reading. A character created in the browser client
+was dead **2 minutes and 11 seconds after registration**, cause ``creature``,
+with a grave and every session revoked -- while the screen still read
+"Loading the world" and the player had never had control. The client dropped
+back to the sign-in form with "Invalid credentials or expired session",
+which is what a revoked session looks like from outside.
+
+The mechanism, read afterwards in ``ishtaria-server/src/combat.rs:154``
+(``ambush_tick``) and ``etc/combat.json``:
+
+* Ambushes select every living player of ``level <= 12`` who has a position
+  and counts as **present**.
+* Presence is ``last_seen_at`` or ``last_active_at`` within
+  ``PRESENCE_SECONDS`` = 120 (``survival.rs:34``), and ``social.rs:301``
+  refreshes ``last_seen_at`` on every ``/events`` poll -- which the client
+  sends every three seconds from the moment it holds a token, loading or not.
+* The roll is ``chance 0.65`` every ``cooldown_seconds 4.0`` within
+  ``range_m 22``, rising to ``snare_chance 0.9`` during the hunter quest's
+  snaring stages -- which is exactly the stage a new character starts in.
+* A wolf does 12 damage (``fierce`` in ``etc/combat.json``), so from 100
+  health death arrives in about nine hits.
+
+There is **no grace period and no spawn protection**: searches for ``grace``,
+``spawn_protect``, ``invulnerab`` and ``protection`` across ``combat.rs``,
+``survival.rs`` and ``players.rs`` return nothing. The spawn is
+``hunter_waterhole``, which the disk describes as pressed by lions and
+wolves, so the pressure is intended -- but it begins before the player can
+act.
+
+The effect is that **the slower the machine or the connection, the likelier a
+player dies on the loading screen**, permanently, in their first session.
+With the terrain work the client does before handing over control
+(``T-02``), and with no worker threads at all in the web build (``T-01``),
+the browser route is where this bites hardest.
+
+**Fixed on 7 November 2026.** Ambushes no longer ask whether a character is
+*present* but whether it is *in control*: ``combat.rs`` now selects on
+``movement_sequence > 0`` (the server has confirmed a first move; the column
+defaults to 0) together with ``last_moved_at`` inside ``CONTROL_SECONDS``
+(15 s). The client posts a move ten times a second once the controls are
+live, standing still included, so an active player always qualifies, while a
+character on a loading screen -- new or re-entering -- never does. Neither
+``last_active_at`` nor ``last_moved_at`` works alone, because both default to
+the moment of insert.
+
+The selection was lifted into ``combat::ambush_targets`` so it can be tested;
+``tests::combat::an_ambush_waits_until_the_player_holds_the_controls`` covers
+all three cases. ``combat.rs`` previously had no ambush test at all.
+
+Measured against the running server, with a script that registers a character
+and then behaves like a client still loading the world -- polling ``/events``,
+never moving:
+
+* Before: health fell 100, 72, 65, ... 9, 2 and the character was **dead
+  after 89 seconds**, its session revoked.
+* After: **119 seconds at 100/100, alive.**
+* A character that does post moves still takes a hit within five seconds
+  (100 to 93), so the mechanic itself is intact.
+
+The guard has a second consumer since: photo mode (``F2``) stops the client
+posting moves while it is open, which takes the character out of the ambush
+pool fifteen seconds later. Measured in the running client -- ``last_moved_at``
+advanced 0.23 s after ``F2`` (the request already in flight) and then stood
+still for 25 s. A player composing a picture has nothing to answer an animal
+with, and the invariant the fix established -- *ambushes pick the player who
+is holding the controls* -- is exactly what says so.
+
+H-07 -- land leases are finished and unreachable (P3, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``land.rs`` (560 lines), ``migrations/0020_land_leases.sql`` and
+``src/tests/leases.rs`` are complete, but no client in the workspace calls
+``/land/*``. Monetization is off by default (``main.rs:107``). Either give it
+an interface or mark it deferred, so that code without a consumer is not
+maintained by accident.
+
+Story and content
+-----------------
+
+The Gilgamesh disk is larger than its own documentation claims: **402 places**
+(72 with real coordinates), **189 characters** (56 named, 186 with bespoke
+models), **71 dialogues with 375 nodes and 809 choices**, **11 quests in 69
+stages**, 51 knowledge cards, 39 readable tablets, 23 codex entries, 17 music
+tracks and 1358 localisation keys. The research is genuinely rigorous:
+``research/WORLD.md`` cites its sources by name, records where they disagree,
+and ``tools/build_world_map.py`` fails the build if any city pin lands in the
+sea.
+
+O-01 -- the story gives the player nothing material (P1, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Across all 71 dialogues the effects used are ``set_stage`` 50, ``set_flag``
+47, ``branch`` 24, ``flourish`` 11, ``teleport_place`` 7, ``set_playable`` 4.
+
+There is **no ``give_item``, no ``take_item``, no ``gold``, no
+``reveal_places`` and no ``once``**, although the server and the protocol
+schema support all of them and ``quests-and-npcs.rst`` advertises them.
+
+The main storyline therefore has no reward of any kind. This is the clearest
+reason the game does not cohere: the survival and economy game runs alongside
+the story rather than through it. Giving a handful of key stages material
+consequences is a pure data change.
+
+O-02 -- player choices have no consequences (P1, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Of **809** choices, **five** carry effects of their own, and no node anywhere
+offers two choices with different effects. Twelve nodes look like forks but
+are quest-stage dispatch tables (``dialogues/gilgamesh.yaml`` ``greet``). The
+three "civilise Enkidu" options are a fixed sequence, each gated on the
+previous stage. Rejecting Ishtar has two variants that set the same stage, jump
+to the same node, and differ only by a flag nothing reads.
+
+The one real fork is ``dialogues/utnapishtim.yaml`` (``keep_vigil`` ->
+eternal life, ``bathe_rest`` -> the snake takes the plant), designed as the
+two endings.
+
+Rather than branching the whole epic, pick five to ten nodes where the choice
+changes something later -- standing with a character, a merchant's price, a
+companion's presence -- and make the flags actually read.
+
+O-03 -- the achievements demand roughly 70 to 100 hours of walking (P2, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``keeper_of_legends`` requires reading 37 tablets. Eighteen of them stand 20
+to 510 km from Uruk (Larsa 21, Shuruppak 52, Eridu 65, Adab 70, Nippur 97,
+Kish 167, Assur 510). Outside Uruk's immediate region the disk lays no roads,
+and teleports exist only inside the immortality quest. At ``WALK_SPEED`` that
+is on the order of 1000 to 1400 km. Two of the twelve epic tablets stand at
+the Waters of Death (333 km) and Utnapishtim's dwelling (756 km), reachable
+**only** within that quest's teleport window -- miss them and they are gone.
+
+O-04 -- Achaemenid architecture stands in for Uruk (P2, revised)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``places/*.yaml`` and ``buildings/*.yaml`` place **1160 0 A.D. Persian house
+models** (``pers_house_d`` 570, ``pers_house_c`` 425, ``pers_house_b`` 124,
+``pers_house_a`` 41) plus Persian temple, palace, tachara, fortress and bireme
+models. Those are about 550 BCE, roughly 2150 years after the period depicted.
+The disk acknowledges the substitution in ``datadisk.yaml``.
+
+**Revised after looking at the live client.** In play the city does *not* read
+as Achaemenid: the ``pers_house_*`` models are generic flat-roofed mud-brick
+houses that serve Early Dynastic Uruk convincingly, with goods on the roofs
+and awnings over the streets. The finding stands only for the representative
+buildings -- temple, palace, fortress -- and not for the urban fabric. The
+blue glazed wall of the river gate remains a Neo-Babylonian borrowing (the
+Ishtar Gate, about 575 BCE).
+
+O-05 -- 66 of 71 pinned cities have no content (P2, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Only ``uruk``, ``abu_tbeirah``, ``susa``, ``memphis`` and ``byblos`` carry a
+wildlife overlay. The rest get one Persian temple silhouette and the server's
+generic biome scenery, so a player who walks to Ur or Lagash finds nothing
+that distinguishes them. Give five cities the epic names a recognisable
+feature each; leave the rest as distant landmarks.
+
+O-06 -- the easter eggs are never packaged (P2, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The server loads ``easter_eggs.yaml``
+(``ishtaria-server/src/story/disk.rs:1304-1305``, ``EasterEgg`` at
+``disk.rs:850``, logic in ``src/story/eggs.rs``) but neither
+``ishtaria-datadisk-gilgamesh/Makefile:51`` nor ``debian/rules`` copies it;
+both list the disk's contents by hand and omit it.
+
+**Confirmed against the built package**: the installed
+``ishtaria-datadisk-gilgamesh 0.4.0-1`` contains ``sky_flyers.yaml``,
+``achievements.yaml`` and ``knowledge.yaml`` but no ``easter_eggs.yaml``. All
+seven easter eggs are dead content. A one-line fix in two files.
+
+O-07 -- the protocol does not describe content the server loads (P2, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 26 18 18 20 18
+
+   * - Artifact
+     - Server loads
+     - Schema ``$defs``
+     - ``DATADISK-SPEC``
+     - Validator
+   * - ``trails/*.yaml``
+     - yes (``disk.rs:223``)
+     - **no**
+     - **no**
+     - **no**
+   * - ``easter_eggs.yaml``
+     - yes (``disk.rs:850``)
+     - **no**
+     - **no**
+     - **no**
+   * - ``sky_flyers.yaml``
+     - yes
+     - partial
+     - **no**
+     - **no**
+   * - ``buildings/``
+     - yes
+     - yes
+     - **no**
+     - yes
+
+``easter_eggs.yaml`` also uses the conditions ``night:`` and ``knows_spell:``,
+neither of which exists in ``$defs/condition``. A third-party author following
+the specification cannot write trails, easter eggs or sky ships, and the
+validator will silently accept a malformed ``trails/``.
+
+O-08 -- withdrawn
+~~~~~~~~~~~~~~~~~
+
+This finding claimed that 36 per cent of spoken lines were missing, from
+counting 167 OGG files per language in the working tree. **It is wrong.**
+``media/voice/`` is gitignored and is rendered at package build. The built
+package contains **269 OGG files per language**, 538 in total, after the build
+synthesised 204 new lines. The 167 were stale leftovers of an earlier run.
+Voice coverage is complete, and the pipeline works as designed.
+
+O-09 -- the public site lost English (P2, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Commit ``bcf366a`` replaced the generated bilingual site with a single
+``site/index.html`` carrying ``<html lang="cs">``, titled "Návrh webu
+Ishtaria" and footer-dated as a design draft. ``build.py``, ``i18n/en.json``,
+``i18n/cs.json`` and the key-parity test are gone; the replacement
+``tests/check.sh`` only checks that referenced files exist. The root
+``AGENTS.md`` states that English is the source language, and
+``ishtaria-web/README.md`` still describes three pages in two languages and a
+build system that no longer exists.
+
+The site also offers Windows and macOS downloads, while ``AGENTS.md`` says not
+to introduce those platforms; and it points players at
+``magnymph.vitexsoftware.com``, which ``AGENTS.md`` names as pre-production.
+
+O-10 -- ``ishtaria-content`` is inert but documented as required (P3, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``core-rules/`` defines 8 items, 2 recipes, 3 biomes and 2 species. Nothing in
+any repository reads ``share/ishtaria/content``. The live catalog is 89 items
+in SQL migrations plus 13 JSON files compiled in with ``include_str!``. Yet
+``operations/installation.rst:21-22,59,81`` and
+``ishtaria-server/README.md:369`` list it as a required install supplying the
+base ruleset.
+
+The knock-on matters more: ``ishtaria-content`` namespaces ids as ``core:``
+while live items are bare (``pine_log``, ``iron_axe``), and
+``ishtaria-core/src/item.rs::is_core_kind()`` tests
+``kind.starts_with("core:")`` -- which **no live item satisfies**, so the
+federation item fallback has nothing to fall back to. See ``T-10``.
+
+O-11 -- documentation contradicts itself (P2, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 34 33 33
+
+   * - Where
+     - Claims
+     - Reality
+   * - ``quests-and-npcs.rst:86``
+     - no non-dialogue triggers
+     - ``reach`` runs in ``story/api.rs:670-712``; the same page describes
+       ``reach`` at line 79
+   * - ``architecture/story.rst:126-130``
+     - the same, then "a quest log screen **are implemented**" two lines later
+     - contradiction inside one paragraph
+   * - root ``AGENTS.md``
+     - no quest log, no non-dialogue triggers
+     - both exist (``quest_panel.gd``, wired at ``main.gd:529-531``)
+   * - ``quests-and-npcs.rst:46-48``
+     - Gilgamesh has no knowledge cards
+     - the disk ships 51, all referenced
+   * - ``development/repositories.rst``
+     - seven repositories
+     - eleven; the flagship datadisk is absent from the index
+   * - ``roadmap.rst`` M9
+     - a minimap is still missing
+     - it ships, and the disk builds its raster
+   * - ADR 0017
+     - "the strip keeps the standard 8-bit encoding", status Accepted
+     - superseded by ADR 0020 (16-bit), **with no superseded note**
+   * - ``research/WORLD.md``
+     - "The strip is 8-bit"
+     - the shipped raster is ``P5 7200 3600 65535``
+
+No decision record covers anything added after ADR 0021 -- trails, vehicles,
+sky flyovers, quest checkpoints, disk rivers, the festival flag, easter eggs,
+swimming and drowning -- nor, and this matters most for the weakest area of
+the project, **rendering, art direction, scene scale or audio**.
+
+Technical
+---------
+
+T-01 -- the recommended way to play is probably broken (P0, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The website makes the browser the primary route ("play now, no install", "we
+recommend playing in the browser"). Yet:
+
+* ``ishtaria-client/export_presets.cfg:94`` sets
+  ``variant/thread_support=false`` for the Web preset.
+* The whole terrain pipeline depends on ``WorkerThreadPool.add_task`` /
+  ``add_group_task`` (``surface_environment.gd:984, 1000, 1088, 1965``), so
+  without threads it runs **on the main thread**.
+* ``surface_environment.gd:233`` prices that work: "rows 3.6 s, grass 22 s,
+  water 14 s" on one core.
+* The existing build is **296 MB** (``index.pck`` 270 MB, ``index.wasm``
+  38 MB). All five presets use ``export_filter="all_resources"`` with an empty
+  ``exclude_filter``, so even the 183 MB of ``zeroad/structures`` is shipped.
+* There is no web branch anywhere: ``OS.has_feature("web")`` occurs once
+  (``main.gd:588``) and only picks a server address.
+
+**Measured on 7 November 2026, and the prediction was wrong in an
+instructive way.** The build was served beside a proxy to the API on one
+origin (the shape production uses, and necessary because the server sends no
+CORS headers) and opened in Chromium on a real GPU. Over loopback the WASM
+started talking to the server after 5.2 s and the title screen appeared well
+inside a minute; the main thread was never the wall it was expected to be.
+
+What actually broke was the renderer. The browser uses the GL Compatibility
+backend, and **the scene shader failed to compile seven times** with::
+
+  ERROR: SceneShaderGLES3: Fragment shader compilation failed:
+  ERROR: 0:1660: '[' : array index for samplers must be constant integral expressions
+
+The cause is ``scripts/planet_surface.gdshader:197``, a loop bounded by the
+``patch_count`` uniform indexing the sampler array ``patch_water[4]``
+declared at line 18. GLSL ES 3.0 allows only a literal index into a sampler
+array, so the whole scene shader was rejected and the planet was never drawn.
+Forward+ on the desktop accepts it, which is why no desktop test caught this.
+
+**Fixed**: the loop now has a constant bound of four with a ``patch_count``
+guard, and each mask is read by its own literal index. After the fix the
+browser reports zero shader failures, the planet renders with its continents,
+oceans and ice, a character can be created, and the HUD and quest panel work.
+See ``H-08`` for what happened next.
+
+What remains true of the original finding: the build is about 308 MB
+(``index.pck`` 271 MB plus ``index.wasm`` 38 MB) and ``thread_support`` is
+still off, so the terrain work of ``T-02`` runs on the main thread. Over a
+real connection the download alone is the first barrier.
+
+An ``exclude_filter`` was added to all five presets for the three asset
+directories with no reference anywhere in ``scripts/``, ``tests/`` or the
+object catalogs -- ``assets/kenney/emotes-pack`` (which ``AGENTS.md``
+nonetheless promises as a feature), ``assets/kenney/ui-adventure``, and
+``assets/minipoly``, whose only consumer is the build-time icon baker
+``tools/bake-item-icons.gd``. **It saves 1.37 MB of 271**, which is honest
+hygiene and no answer at all to the size problem: the weight is
+``assets/zeroad/structures`` (183 MB) and ``assets/quaternius`` (118 MB), and
+both are reached by runtime string paths (``PROP_KITS`` in
+``surface_environment.gd:49``, the probe loop at ``:2256``), so neither can be
+filtered by name without knowing which models a world actually asks for.
+Shrinking the browser build means answering that question, not tightening the
+filter. The build was re-exported and loaded in Chromium afterwards: title
+screen, eighteen successful requests, no errors.
+
+T-02 -- the terrain is rebuilt every 100 m of walking (P1, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``main.gd:2488``::
+
+  if _environment.target.distance_to(_surface_direction) * PLANET_RADIUS > 0.10:
+      _environment.show_region(_surface_direction)
+
+``PLANET_RADIUS`` is in kilometres, so the threshold is **100 m**.
+``show_region()`` runs ``_clear_region`` + ``_build_detail()`` +
+``_request_objects()`` -- the full rebuild priced above, split across
+``clampi(OS.get_processor_count() / 2, 1, 6)`` workers.
+
+Walking 100 m at 4 m/s takes 25 s, which gives the budget:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 16 16 26 20 22
+
+   * - Cores
+     - Workers
+     - Estimated rebuild
+     - Keeps up walking?
+     - Running (16.7 s)?
+   * - 8
+     - 4
+     - about 9-13 s
+     - yes
+     - barely
+   * - 4
+     - 2
+     - about 18-22 s
+     - barely
+     - no
+   * - 2
+     - 1
+     - about 40 s
+     - **no**
+     - **no**
+
+The old disk slides into the new origin meanwhile (``:3036-3039``), so this is
+not a visible freeze -- it is continuous CPU load while walking, and on two
+cores the client never catches up.
+
+One piece of that work was wasted outright and is **fixed**: a dry disk built
+its water surface out of the land triangles, because an empty index list is
+invalid for an ``ArrayMesh``. That raised a mesh of up to 37 000 vertices on
+the main thread and rasterised it every frame for the shader to discard every
+fragment. Dry ground now raises no water mesh at all.
+``tests/surface_environment.gd`` asserted the old shape ("one land and one
+water mesh") for dry ground and was corrected; ``_test_pond``, which builds a
+disk that does have water, still asserts two meshes and inspects the water
+one. 1930 checks pass.
+
+**A second claim made here was wrong and is withdrawn.** It read that grass is
+computed to 200 m (``grass_cover.gd:8``) but drawn to 90 m (``:11``) and that
+most of the work is therefore thrown away. The comment one line above the
+constant explains why both numbers are right: the player may wander 100 m from
+the region centre before ``main.gd`` re-targets, and sees ``VIEW_M`` beyond
+that, so grass has to exist to 190 m. Generating it once per region is
+cheaper than regenerating as the player walks.
+
+T-03 -- per-frame work that can be removed safely (P2, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 34 44 22
+
+   * - Place
+     - What it does every frame
+     - Fix
+   * - ``love_overlay.gd`` ``_rebuild_zones``
+     - freed and raised every zone disc each frame, with a fresh
+       ``CylinderMesh`` and ``StandardMaterial3D`` per disc, while the zones
+       themselves are polled every 1.2 s. **Fixed**: one shared mesh and
+       material, nodes rebuilt only when the set of zones changes, positions
+       still followed every frame.
+     - done
+   * - ``surface_environment.gd:3272`` -> ``:1251-1257``
+     - up to 18 ``ray_intersects_triangle`` per walking NPC; about 1150 ray
+       tests a frame at ``MAX_NPCS = 64``
+     - cache the height, or use the cheap ``_render_position`` as ``_wander``
+       does
+   * - ``minimap.gd`` ``update_props``
+     - **the claim was overstated**: the distance reject comes *before* the
+       quaternion and the allocations, so those are not paid for far props.
+       What remained was two square roots per prop per frame, now compared
+       squared. The minimap is never hidden, so there is no "skip when
+       invisible" to apply.
+     - done
+   * - ``planet_sky.gd:279-320``
+     - a full solar and lunar solution plus 14 ``set_shader_parameter`` calls,
+       to move the sun 0.004 degrees
+     - update 4 to 10 times a second
+   * - ``character_controls.gd:509-530``
+     - walks the whole tree for ``Skeleton3D`` and lowercases every bone name
+       while seated
+     - resolve once when the avatar loads
+   * - ``player_hud.gd`` ``_process``
+     - ``add_theme_color_override`` on every reserve label every frame, which
+       invalidates the theme cache and queues a redraw, even when the colour
+       had not changed. **Fixed**: applied only when it differs.
+     - done
+   * - ``quest_indicator.gd:65-71``
+     - ``OS.get_keycode_string()`` allocating a string 60 times a second.
+       Throttling it to 4 Hz was tried and **reverted**: the test guards that
+       a rebound key shows at once, which is a real guarantee and worth more
+       than one string per frame. Hang it on a settings signal or leave it.
+     - open
+
+T-04 -- the kilometre scene scale is a standing trap (P2)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The scene is in kilometres (``surface_environment.gd:1694``, ``main.gd:250``).
+This is deliberate and honestly commented: shadow bias is rescaled with a note
+recording the empirical check (``main.gd:257-258``), lamp energy is recomputed
+(``LAMP_ENERGY = 3.0e-6``, ``:45-47``), and the sky ships compute Doppler by
+hand because "Godot's own would take the speed of sound in kilometres"
+(``sky_ships.gd:10``).
+
+It is not a defect, but every new feature has to remember it -- and ``V-04``
+shows what happens when one does not. It deserves a decision record with a
+units checklist.
+
+T-05 -- the client has no diagnostics (P2, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In 20,375 lines there is **one** ``push_warning``
+(``tablet_panel.gd:180``), **no** ``push_error``, **no** ``assert`` and one
+``print``. The validators (``apply_environment``, ``apply_objects``,
+``apply_props``, ``apply_placed``, ``apply_terrains``) have dozens of
+indistinguishable ``return false`` branches. When the server sends slightly
+malformed data the world silently stays empty and the only symptom is
+``"Surface objects unavailable"``; a bug report cannot say which check failed.
+
+The policy is inconsistent too: ``surface_environment.gd:1297`` rejects the
+**whole region** for one bad object, while ``:2327`` skips a single bad prop.
+
+T-06 -- every object request scans all graves (P1, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``survival::memorials`` is called from ``movement.rs:3497``, that is from
+``/world/objects``, the most frequent route. It selected graves by a cone
+around the viewer's direction -- three ``sqrt``/dot expressions per row, with
+``graves_world (world_id)`` as the only index -- so every grave in the world
+was read on every request. The table is permanent by design and grows with
+every death, forever.
+
+**Fixed on 7 November 2026.** The query now also bounds the Cartesian box
+around the point it asks about, which migration ``0071_grave_lookup.sql``
+answers with ``graves (world_id, position_x)``. The box is deliberately
+generous (9 km against a radial band of +/-8 km and a 700 m cone) so it can
+never exclude a grave the cone would keep.
+
+Measured on 200 000 graves spread over the sphere: **35.5 ms to 0.85 ms**,
+with the plan changing from a parallel scan in primary-key order to
+``Index Scan using graves_world_x``. Correctness was checked over 50 random
+directions -- **no difference in the rows returned**. All 275 server tests
+pass.
+
+T-07 -- further queries that will scan (P2, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Fixed on 7 November 2026**, with one instructive failure along the way.
+
+* ``loot.rs`` ``scoop_near`` -- ``ground_items ... FOR UPDATE`` had no range
+  bound on ``position_x``, so ``ground_items_area`` was unusable, inside a
+  loop over every nearby NPC. Bounded.
+* ``social.rs`` -- the ``player_events`` sweep used a top-level ``OR`` across
+  two columns, which no index can serve, on **every** ``/events`` poll. Split
+  into two statements, one per column; both indexes already existed
+  (``player_events_created``, the partial ``player_events_expires``).
+* ``placing.rs`` -- the station-in-reach check read every placed object.
+  Bounded, served by the existing ``placed_objects_area``.
+* ``trade.rs`` -- expired trades are deleted on every lookup; migration
+  ``0072_position_lookup.sql`` adds ``trades (created_at)``.
+* ``chat.rs`` -- **the first attempt here did not work, and the reason is
+  worth keeping.** Adding ``other.position_x BETWEEN me.position_x - $n AND
+  me.position_x + $n`` to the self-join changed nothing: measured on 50 000
+  players, 11.8 ms against 10.3 ms, with the planner still choosing a
+  sequential scan. PostgreSQL cannot turn a *correlated* range -- one whose
+  bounds come from the other side of a join -- into index bounds; forced with
+  ``enable_seqscan = off`` it scanned the whole index and took 17.9 ms, worse
+  than before. The same range against a **constant** is answered outright in
+  0.05 ms.
+
+  ``/players/nearby`` was therefore rewritten as two queries: the caller's own
+  position is read on its primary key, then the listing bounds ``position_x``
+  by that constant. Measured: **11.8 ms to 0.20 ms**, plan
+  ``Index Scan using players_world_x`` (migration 0072). ``chat::say`` keeps
+  its self-join -- it is an ``INSERT ... SELECT`` and the same correlation
+  applies, so a bound there would be decoration; it is sent once per spoken
+  line rather than once per second per client.
+
+All 275 server tests pass, including ``tests/chat.rs``, which covers the
+nearby listing, spoken lines and whispers.
+
+T-08 -- tables that are never pruned (P2, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ground_items`` (rows vanish only when picked up), ``world_object_state`` (a
+row per harvested tree or rock, **never deleted even after it regrows**),
+``placed_objects`` (a dead owner's ``owner_id`` becomes ``NULL``, and because
+ownership is checked the object becomes permanently immovable), and
+``player_sessions`` (swept only for the player signing in).
+
+T-09 -- transaction and data details (P2/P3, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* ``trade.rs:438-444`` -- after a failed swap the transaction is dropped and
+  the next statement runs on ``state.pool``, that is possibly a **different**
+  connection, which will block on the row lock the first still holds. With
+  ``max_connections(10)`` that is a latent hazard.
+* ``trade.rs:221-228`` -- ``cancel`` runs with no transaction, no lock and no
+  liveness check.
+* ``shops.rs:406-416`` with ``durability.rs:6-8`` -- durability is one column
+  per **stack**, so merging a worn item into a fresh stack launders its wear,
+  and the reverse spreads it.
+* ``survival.rs:901`` reads ``grave_inventory`` without ``FOR UPDATE``; only
+  ``require_reachable`` (``:839-854``), which ends in ``FOR UPDATE OF graves``,
+  makes this safe. The invariant lives in a different function from the table
+  it protects.
+
+T-10 -- ``ishtaria-core`` is effectively dead, and the cost is real (P2, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``grep -rn 'ishtaria_core' ishtaria-server/src/`` returns **one line**
+(``main.rs:55``, for ``RulesetVersion`` and ``ServerName``). ``item.rs``,
+``PlayerPresence``, ``validate_world_link``, ``PlayerId`` and ``ItemId`` are
+unreachable. The crate header says it is compiled into the client through a
+Godot GDExtension, but the client contains no ``.gdextension`` and no ``.so``
+-- it is pure GDScript.
+
+The consequence is not cosmetic. Because no shared layer exists, rules are
+**mirrored by hand** between Rust and GDScript: strip decoding
+(``surface_environment.gd:498`` hardcodes ``STEP_M`` and ``FLOOR_M`` from
+``worldgen/src/strip.rs:12-14``), river constants (``:545-551`` against
+``movement.rs:1040-1049``), a water-edge threshold stored as a pre-solved root
+(``RIVER_WATER_SHARE := 0.63``), and disk river width kept as the **inverse**
+of the server constant (``1.0/1.3`` against ``DISK_RIVER_WATER_SHARE = 1.3``).
+``movement.rs:1039`` even names the client function it must agree with.
+
+The failure mode is a player drowning on ground their screen draws as dry.
+The fix need not be a GDExtension: publish these constants in
+``/world/environment`` and add a cross-language test that both sides agree on
+a sample of points.
+
+T-11 -- the client architecture blocks visual iteration (P2, large)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``ishtaria-client/scenes/main.tscn`` is **169 bytes** holding a single node,
+and there are no autoloads. Every scene and every panel is built
+imperatively in GDScript, which is why ``main.gd`` is 3015 lines and
+``surface_environment.gd`` 3689. No interface has a ``.tscn``, so nothing can
+be adjusted in the editor and each visual change needs a code edit and a
+restart. (The 575 ``.scn`` files are import artifacts under ``.godot/``, not
+scenes.)
+
+T-12 -- props are drawn without batching (P2, medium)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``surface_environment.gd:39`` sets ``MAX_PROPS := 3000`` and ``apply_props()``
+(``:2311-2378``) instantiates a separate ``Node3D`` for each. MultiMesh is
+used only for grass (``grass_cover.gd:225``) and the far ring (``:3582``);
+near objects, props, NPCs, placed things and loot are all individual nodes --
+about 4300 scene instances in the worst case. ``visibility_range_*`` is set
+**only** for grass (``grass_cover.gd:235-237``). Worse,
+``surface_environment.gd:3639-3649`` duplicates the material for **every
+instance** carrying a ``metallic`` entry, which defeats batching outright.
+
+T-13 -- build and packaging friction (P3, small)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Found while building every package for this audit:
+
+* ``dpkg-buildpackage`` fails without ``-d`` on a machine whose Rust comes
+  from rustup, because ``debian/control`` requires ``cargo`` and ``rustc`` as
+  Debian packages. ``deploy.sh`` invokes the build without ``-d``, so **as
+  written it would not complete on a clean machine**.
+* The Gilgamesh package cannot be built without Piper voice models;
+  ``debian/rules`` counts the rendered OGG files and refuses at zero.
+* Unreferenced in code, tests, tools and ``world_objects.json``:
+  ``assets/kenney/emotes-pack/`` (although ``AGENTS.md`` promises moods) and
+  ``assets/kenney/ui-adventure/``. ``assets/minipoly/`` (2.6 MB) is needed
+  only to re-bake icons. All three are now excluded from every export preset
+  -- see ``T-01`` for how little that saves and why.
+* Untracked leftovers sat in the client root from 28 October:
+  ``_probe_gilgamesh*`` and ``_probe_hunter*``, including two ``.import``
+  files whose source ``.glb`` no longer existed. **Removed on 7 November
+  2026**, after checking that all six were untracked, that both ``.import``
+  files were orphans, and that nothing in ``scripts/``, ``tests/``,
+  ``tools/`` or ``project.godot`` referred to them. The client working tree
+  now carries no untracked files at all.
+* The client crashed on exit after the screenshot run with two leaked texture
+  RIDs and ``double free or corruption``. The screenshots were written first,
+  so the run was usable, but the crash is real.
+
+Prioritised backlog
+-------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 12 14 10 24 12 28
+
+   * - Id
+     - Kind
+     - Priority
+     - Repository
+     - Effort
+     - Benefit to the player
+   * - B-01
+     - security
+     - **P0**
+     - server, client
+     - small
+     - characters cannot be stolen and destroyed
+   * - T-01
+     - technical
+     - **P0**
+     - client
+     - medium
+     - the recommended route into the game works
+   * - B-02
+     - security
+     - P1
+     - server
+     - small
+     - loot cannot be made to vanish
+   * - V-02
+     - visual
+     - **P1**
+     - client
+     - small
+     - an immediate step up in looks
+   * - V-04
+     - visual
+     - **P1**
+     - client
+     - small
+     - names readable in a city
+   * - V-05
+     - visual
+     - **P1**
+     - client
+     - medium
+     - the world stops being silent
+   * - H-01
+     - gameplay
+     - P1
+     - server
+     - small
+     - the loop cannot be broken for good
+   * - V-03
+     - visual
+     - P1
+     - client
+     - medium
+     - terrain stops being a plane
+   * - T-02
+     - technical
+     - P1
+     - client
+     - medium
+     - smooth walking on a weaker machine
+   * - T-06
+     - technical
+     - P1
+     - server
+     - small
+     - speed does not decay with deaths
+   * - V-06
+     - visual
+     - P1
+     - client, server
+     - large
+     - the world finally fits together
+   * - H-06a
+     - gameplay
+     - **P1**
+     - server, disk, client
+     - medium
+     - residents sleep at home, work by day
+   * - H-06
+     - gameplay
+     - P1
+     - server, client
+     - large
+     - NPC collision, reactions
+   * - O-01
+     - content
+     - **P1**
+     - datadisk
+     - medium
+     - the story finally rewards
+   * - O-02
+     - content
+     - P1
+     - datadisk
+     - medium
+     - choices mean something
+   * - H-04
+     - process
+     - P1
+     - all
+     - large
+     - finished work starts to show
+   * - V-01
+     - visual
+     - P1
+     - client
+     - medium
+     - a defined target for the look
+   * - H-03
+     - content
+     - P2
+     - server, content
+     - medium
+     - the world feels Sumerian
+   * - H-02
+     - gameplay
+     - P2
+     - server, content
+     - small
+     - gathering has somewhere to go
+   * - H-05, O-03
+     - gameplay
+     - P2
+     - datadisk, server
+     - medium
+     - an end to hundred-kilometre walks
+   * - O-04
+     - visual
+     - P2
+     - datadisk
+     - large
+     - representative buildings fit the period
+   * - O-05
+     - content
+     - P2
+     - datadisk
+     - medium
+     - cities differ from one another
+   * - O-06
+     - content
+     - P2
+     - datadisk
+     - **small**
+     - seven easter eggs appear at all
+   * - O-07
+     - protocol
+     - P2
+     - protocol
+     - small
+     - third-party disks become writable
+   * - O-09
+     - web
+     - P2
+     - web
+     - small
+     - English back, claims honest
+   * - O-11
+     - docs
+     - P2
+     - docs, all
+     - small
+     - documentation stops misleading
+   * - V-07 to V-12
+     - visual
+     - P2
+     - client, disk
+     - small
+     - water, map, dialogue, market
+   * - T-03
+     - technical
+     - P2
+     - client
+     - small
+     - higher, steadier frame rate
+   * - T-05, T-07, T-08
+     - technical
+     - P2
+     - client, server
+     - small
+     - diagnostics, speed over time
+   * - T-09
+     - technical
+     - P2
+     - server
+     - small
+     - no latent lock hazards
+   * - T-10, O-10
+     - technical
+     - P2
+     - server, client
+     - medium
+     - no drowning on dry land
+   * - T-11, T-12
+     - technical
+     - P2
+     - client
+     - large/medium
+     - faster iteration, fewer draw calls
+   * - B-03, B-04
+     - security
+     - P2/P3
+     - server
+     - small
+     - resilience
+   * - H-07, T-13
+     - cleanup
+     - P3
+     - server, client
+     - small
+     - unused code and assets
+
+Quick wins
+----------
+
+Hours to two days each, in rough order of value:
+
+#. **V-02** -- AgX tonemapping, exposure and SSAO in ``planet_sky.gd``. A few
+   dozen lines; by the cinematic's own account this is most of the visual gap.
+#. **V-04** -- ``fixed_size`` and a distance cull on labels in
+   ``surface_environment.gd:1532`` and ``remote_players.gd:131``.
+#. **B-01** -- require a password in ``players.rs:181`` and
+   ``character_creator.gd:141``.
+#. **H-01** -- a stone axe and pickaxe recipe in ``etc/recipes.json``.
+#. **O-06** -- add ``easter_eggs.yaml`` to the disk's ``Makefile:51`` and
+   ``debian/rules``.
+#. **T-03** -- a dirty flag in ``love_overlay.gd``; stop recomputing the
+   minimap while it is hidden (``minimap.gd:288``).
+#. **T-02, partial** -- match the grass view distance to its computation
+   (``grass_cover.gd:8`` against ``:11``) and skip the water mesh on a dry
+   disk. This removes most of the heaviest phase.
+#. **T-06** -- an index on ``graves(world_id, position_x)`` and a range bound
+   in the query.
+#. **V-08, V-09** -- back the map with an opaque panel; hide the HUD under the
+   map and dialogue.
+#. **H-04, partial** -- ``make`` targets for ``uruk_aerial`` and
+   ``uruk_ground_look``, and an ``xvfb-run`` variant of the screenshot tests.
+#. **O-01, start** -- give three to five key stages a material reward with
+   ``give_item`` or ``gold``; the server and schema already support it.
+#. **T-13** -- delete the ``_probe_*`` leftovers and add an
+   ``exclude_filter``, which also shrinks the web build.
+
+Suggested order of work
+-----------------------
+
+**Phase 0, critical, depends on nothing.** ``B-01``, ``T-01``, ``B-02``.
+Until ``B-01`` is fixed it is not reasonable to invite players; until ``T-01``
+is settled they cannot reach the game.
+
+**Phase 1, visual foundation, depends on nothing.** ``V-02``, then ``V-01``
+(calibrate against the cinematic), then ``V-07``. In parallel ``V-04``,
+``V-08``, ``V-09``, ``V-10``, ``V-11``, ``V-12``.
+
+**Phase 2, scale and terrain, judged against phase 1.** ``V-06`` first, then
+``V-03``. The order matters: tuning terrain density against a wrong reference
+size would have to be redone.
+
+**Phase 3, performance, after phase 2 changes the vertex counts.** ``T-02``,
+``T-03``, ``T-12``, and on the server ``T-06``, ``T-07``, ``T-08``.
+
+**Phase 4, gameplay and story, independent of 1 to 3.** ``H-01``, ``H-02``,
+``H-03`` (``H-02`` and ``H-03`` together, so the catalog is rewritten once),
+and alongside them ``O-01`` and ``O-02``. ``H-03`` should precede ``O-01`` so
+that rewards are period-appropriate. Then ``V-05``, which leans on the new
+actions.
+
+**Phase 5, the living world.** The order is fixed by the decisions recorded in
+``H-06a``:
+
+#. ``H-06a`` for the crowd -- the 97 characters sharing ``crowd_passersby``.
+   Depends on nothing, visible immediately, no risk to any quest.
+#. ``H-01`` -- a **hard prerequisite** for the next step.
+#. ``H-06a`` for merchants and craftsmen.
+#. ``H-06a`` for quest characters, including knocking at doors: a new
+   interaction and a new migration on the ``npc_pauses`` pattern. The most
+   expensive part, so last.
+#. Then the rest of ``H-06`` (collision, reactions), ``H-05`` with ``O-03``,
+   and ``O-05``.
+
+**Phase 6, onboarding and user experience**, after 1, 4 and 5.
+
+**Phase 7, sustainability**, running alongside from phase 3: ``T-05``,
+``T-09``, ``T-10``, ``T-11``, ``H-07``, ``T-13``, and ``O-11``.
+
+**Throughout:** ``H-04``. Without a played session as a routine step, none of
+the phases can be shown to have worked.
+
+How to verify the work
+----------------------
+
+Automatable:
+
+* ``B-01`` -- registration and sign-in with ``""`` return 400; an existing
+  passwordless account cannot be used. Note that
+  ``tests.rs::survival_empty_password`` asserts the opposite today.
+* ``B-02`` -- ``GET /world/objects`` without a token leaves ``ground_items``
+  unchanged.
+* ``B-03`` -- a sequence beyond a sane window is rejected.
+* ``H-01`` -- a stone axe recipe exists and can be made from starter
+  materials.
+* ``H-06a`` -- ``route()`` returns the same result for the same
+  ``(id, now_ms, solar offset)``, and at night the target lies at the home
+  door; ``/world/objects`` omits scheduled residents at night and lists them
+  by day.
+* ``T-06``, ``T-07`` -- ``EXPLAIN (ANALYZE)`` before and after, showing the
+  move from ``Seq Scan`` to ``Index Scan``.
+* ``T-10`` -- a cross-language test that the same sample of points yields the
+  same height and water depth in Rust and in GDScript.
+* ``V-02``, ``V-03``, ``V-04``, ``V-08``, ``V-09`` -- screenshot tests under
+  ``xvfb-run`` at a fixed resolution against approved references. This first
+  requires fixing that 13 of the 15 screenshot tests currently run
+  ``--headless`` (``H-04``).
+
+Only by playing, with a display and a running server:
+
+* The result of phases 1 and 2, compared against the cinematic stills from the
+  same places and times of day: the Ishtar gate, the market, the ziggurat, the
+  quay.
+* ``T-01`` -- load the web build and time the first scene.
+* ``T-02`` -- walk and run a kilometre on machines with 2, 4 and 8 cores.
+* ``V-05`` -- by listening.
+* ``H-05``, ``H-06``, ``H-06a`` -- play the first quest through, and walk
+  Uruk by day and by night.

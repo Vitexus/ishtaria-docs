@@ -66,6 +66,7 @@ worlds are linked through **portals** that players build in-game.
    development/server-tour
    development/client-tour
    development/cookbook
+   development/audit-2026-11
    development/building-packages
    development/steam
    development/contributing
