@@ -52,6 +52,10 @@ All keys can be remapped in *Settings*; only ``Esc`` is reserved.
      - Minimap / portals.
    * - ``1`` – ``9``
      - Cast the learned spells in list order.
+   * - ``F2``
+     - Photo mode (see *Pictures*).
+   * - ``F12``
+     - Save a picture of the world without the interface.
 
 Staying alive
 -------------
@@ -128,6 +132,36 @@ Text chat works within one world (say and whisper). Friends are mutual, show onl
 short-lived event notifications. A player may opt in to showing a flag beside their name.
 Blocking and cross-world chat are **planned**. A hall of fame lists the ten most successful
 characters, scored ``100 * level + 10 * days lived``.
+
+Pictures
+--------
+
+``F12`` saves what is on screen without any of the interface, to
+``Pictures/Ishtaria/ishtaria-<date>-<time>.png`` (the system pictures folder; the client's own
+data directory if there is none). The confirmation names the file.
+
+``F2`` opens **photo mode**, where the whole interface steps aside and the camera comes off the
+character's shoulder:
+
+* It starts from the view the game was showing, so the first frame of photo mode is the last
+  frame of play.
+* The walking keys fly the camera, the run key flies faster, jump and ``Ctrl`` rise and sink,
+  and the **right mouse button held down** looks around. The cursor stays free the rest of the
+  time, because the bar at the bottom is meant to be used.
+* The camera is kept on a **50 m leash** from the character and above the ground. Photo mode is
+  not a spyglass: in a world where other people walk about, a view that could wander off would
+  scout what the character cannot see.
+* *Time of day* carries the sun up to twelve hours either way **for this client only**. The
+  world's own solar clock belongs to the server -- the Day and Night scrolls turn it for
+  everybody -- so the offset is dropped when the mode closes.
+* *Field of view* goes from 20 to 110 degrees, and *Show character* leaves the character out of
+  the picture.
+* ``F12`` takes the picture without the bar; the path appears on the hint line. ``Esc`` leaves
+  and gives back the sun, the field of view, the character and every window that was open.
+
+While photo mode is open the character stops reporting moves to the server, so after fifteen
+seconds it is no longer a target for an ambush: a player composing a picture has nothing to
+answer an animal with.
 
 Where to go next
 ----------------
