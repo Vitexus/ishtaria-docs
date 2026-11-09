@@ -102,8 +102,9 @@ Hunting and combat
 
 Animals can be hunted with the weapon in hand. Dangerous animals bite back after a hit they
 survive, and a creature can kill a character. Fierce animals also strike first, unprovoked, at
-a low-level character that comes within their reach (and more boldly while that character lays
-snares for the hunter quest). Animals do not chase and there is **no player-versus-player
+a low-level character they touch (each species has its own reach of one or two metres in
+``etc/combat.json``, so a fox must be against the character, a lion a little farther; the bite is
+surer while that character lays snares for the hunter quest). Nothing hurts from a distance. Animals do not chase and there is **no player-versus-player
 damage**. Story characters show a health bar only when hurt; striking one makes it hostile
 until a dialogue apology (50 gold) clears the grudge.
 
